@@ -1,0 +1,12 @@
+prime-tech-platform/
+├── _spec/
+│   ├── CODEX_HANDOFF_v1.md              (ADD THIS)
+│   ├── FRONTEND_HANDOFF_v1.pdf          (ADD THIS)
+│   └── CODEX_EXECUTION_PLAN_v1.md
+├── backend/
+├── frontend/
+├── docker/
+├── docs/
+├── .gitignore
+├── bootstrap.ps1
+└── README.md
