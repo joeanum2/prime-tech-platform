@@ -1,11 +1,11 @@
-﻿import { Router } from "express";
-import * as c from "../controllers/auth.controller";
+import { Router } from "express";
+import { login, logout, me } from "../auth/auth.controller";
+import { requireAuth } from "../middlewares/auth";
 
-export const authRoutes = Router();
-authRoutes.post("/register", c.register);
-authRoutes.post("/login", c.login);
-authRoutes.post("/logout", c.logout);
-authRoutes.get("/me", c.me);
-authRoutes.post("/verify-email", c.verifyEmail);
-authRoutes.post("/request-password-reset", c.requestPasswordReset);
-authRoutes.post("/reset-password", c.resetPassword);
+const router = Router();
+
+router.post("/login", login);
+router.post("/logout", requireAuth, logout);
+router.get("/me", requireAuth, me);
+
+export default router;
