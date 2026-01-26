@@ -2,9 +2,9 @@
 import cookieParser from "cookie-parser";
 import { loadEnv } from "./config/env";
 import { errorHandler } from "./middlewares/error-handler";
-import { tenantStub } from "./middlewares/tenant";
 import { authStub } from "./middlewares/auth";
 import { rawBody } from "./middlewares/raw-body";
+import { resolveTenant } from "./middlewares/tenant";
 
 import { authRoutes } from "./routes/auth.routes";
 import { checkoutRoutes } from "./routes/checkout.routes";
@@ -18,16 +18,19 @@ import { releasesRoutes } from "./routes/releases.routes";
 import { accountRoutes } from "./routes/account.routes";
 import { bookingsRoutes } from "./routes/bookings.routes";
 import { adminRoutes } from "./routes/admin.routes";
+import { resolveTenant } from "./middlewares/tenant";
 
 export function buildApp() {
   const env = loadEnv();
   const app = express();
 
-  app.get("/api/health", (_req, res) => res.json({ ok: true }));
+  
+app.use("/api", resolveTenant);
+app.get("/api/health", (_req, res) => res.json({ ok: true }));
+app.use('/api', resolveTenant);
+
 
   // Tenant capture stub
-  app.use("/api", tenantStub);
-
   // Stripe webhook MUST read raw body before JSON parsing
   app.use("/api/webhooks", rawBody, webhooksRoutes);
 
@@ -52,3 +55,9 @@ export function buildApp() {
   app.use(errorHandler);
   return app;
 }
+
+
+
+
+
+
