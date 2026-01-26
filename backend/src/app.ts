@@ -25,12 +25,9 @@ export function buildApp() {
   const app = express();
 
   
-app.use("/api", resolveTenant);
+  app.use("/api", resolveTenant);
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
-app.use('/api', resolveTenant);
-
-
-  // Tenant capture stub
+// Tenant capture stub
   // Stripe webhook MUST read raw body before JSON parsing
   app.use("/api/webhooks", rawBody, webhooksRoutes);
 
@@ -55,6 +52,8 @@ app.use('/api', resolveTenant);
   app.use(errorHandler);
   return app;
 }
+
+
 
 
 
