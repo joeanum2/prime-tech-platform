@@ -1,4 +1,5 @@
 ﻿import { Router } from "express";
-import * as c from "../controllers/checkout.controller";
+import { startCheckout } from "../checkout/checkout.controller";
+
 export const checkoutRoutes = Router();
-checkoutRoutes.post("/start", c.checkoutStart);
+checkoutRoutes.post("/start", startCheckout);

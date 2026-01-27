@@ -1,4 +1,5 @@
 ﻿import { Router } from "express";
-import * as c from "../controllers/webhooks.controller";
+import { stripeWebhook } from "../webhooks/stripe.webhook";
+
 export const webhooksRoutes = Router();
-webhooksRoutes.post("/stripe", c.stripeWebhook);
+webhooksRoutes.post("/stripe", stripeWebhook);
