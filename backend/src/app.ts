@@ -1,10 +1,11 @@
-﻿import express from "express";
+import express from "express";
 import cookieParser from "cookie-parser";
 
 import { loadEnv } from "./config/env";
 import { errorHandler } from "./middlewares/error-handler";
 import { rawBody } from "./middlewares/raw-body";
 import { resolveTenant } from "./middlewares/tenant";
+import { attachSession } from "./middlewares/auth";
 
 import authRoutes from "./routes/auth.routes";
 import { checkoutRoutes } from "./routes/checkout.routes";
@@ -23,9 +24,6 @@ export function buildApp() {
   const env = loadEnv();
   const app = express();
 
-  // Health check
-  app.get("/api/health", (_req, res) => res.json({ ok: true }));
-
   // Tenant resolution (must be early)
   app.use("/api", resolveTenant);
 
@@ -35,8 +33,10 @@ export function buildApp() {
   // JSON for everything else
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser(env.SESSION_SECRET));
+  app.use(attachSession);
 
   // Routes
+  app.get("/api/health", (_req, res) => res.json({ ok: true }));
   app.use("/api/auth", authRoutes);
   app.use("/api/checkout", checkoutRoutes);
   app.use("/api/orders", ordersRoutes);
