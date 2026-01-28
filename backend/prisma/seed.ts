@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+﻿import { hashPassword } from "../src/auth/password";
 import { prisma } from "../src/db/prisma";
 
 async function main() {
@@ -21,7 +21,7 @@ async function main() {
 
   const adminEmail = "admin@primetech.local";
   const adminPassword = "PrimeTechAdmin123!";
-  const passwordHash = bcrypt.hashSync(adminPassword, 10);
+  const passwordHash = await hashPassword(adminPassword);
 
   const adminUser = await prisma.user.upsert({
     where: { tenantId_email: { tenantId: tenant.id, email: adminEmail } },
