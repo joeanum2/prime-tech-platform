@@ -1,25 +1,15 @@
 ﻿import { Router } from "express";
-import * as c from "../controllers/admin.controller";
 import { requireAuth, requireRole } from "../middlewares/auth";
+import * as c from "../controllers/admin.controller";
+import { adminHealth } from "../controllers/admin.health.controller";
+import { adminStats } from "../controllers/admin.stats.controller";
 
 export const adminRoutes = Router();
 
-/**
- * Admin guard
- * Must be authenticated AND admin role
- */
 adminRoutes.use(requireAuth);
 adminRoutes.use(requireRole("ADMIN"));
 
-/**
- * Health check (admin only)
- */
-adminRoutes.get("/health", (_req, res) => {
-  res.json({ ok: true });
-});
-
-/**
- * Admin booking management
- */
+adminRoutes.get("/health", adminHealth);
+adminRoutes.get("/stats", adminStats);
 adminRoutes.get("/bookings", c.adminListBookings);
 adminRoutes.patch("/bookings/:bkgRef", c.adminPatchBooking);
