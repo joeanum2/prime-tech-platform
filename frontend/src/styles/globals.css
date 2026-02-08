@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --background: #f7f7f5;
+  --text: #1f1f1b;
+  --surface: #ffffff;
+  --surface-muted: #f2f2ef;
+  --border: #d9d9d2;
+}
+
+* {
+  @apply border-border;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text);
+  @apply bg-background text-text antialiased;
+  font-feature-settings: "ss01";
+}
+
+a {
+  @apply text-primary hover:text-primary-hover transition-colors;
+}
+
+:focus-visible {
+  outline: 2px solid #2f3b2f;
+  outline-offset: 2px;
+}
+
+.section-title {
+  @apply text-2xl font-semibold text-text;
+}
+
+.page-title {
+  @apply text-3xl font-semibold text-text;
+}
+
+.caption {
+  @apply text-xs uppercase tracking-wide text-muted;
+}
+
+.badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+}
+
+.card {
+  @apply rounded-2xl border bg-surface shadow-card;
+}
+
+.table-shell {
+  @apply w-full overflow-hidden rounded-2xl border bg-surface;
+}
+
+.table-shell table {
+  @apply w-full border-collapse;
+}
+
+.table-shell th,
+.table-shell td {
+  @apply px-4 py-3 text-left text-sm;
+}
+
+.table-shell thead {
+  @apply bg-surface;
+}
+
+.table-shell tbody tr {
+  @apply border-t;
+}
+
+.table-shell thead th {
+  @apply sticky top-0 bg-surface text-xs uppercase tracking-wide text-muted;
+}
+
+.skeleton {
+  @apply animate-pulse rounded-xl bg-[color:var(--surface-muted)];
+}
+
