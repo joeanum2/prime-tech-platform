@@ -16,6 +16,14 @@ dist/
 out/
 coverage/
 
+# Local dev
+.venv/
+backend/logs/
+frontend/.next/
+frontend/node_modules/
+backend/node_modules/
+*.log
+
 # OS
 .DS_Store
 Thumbs.db
