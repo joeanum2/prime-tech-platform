@@ -1,23 +1,4 @@
-import nodemailer from "nodemailer";
-import type { Transporter } from "nodemailer";
 import { getMailConfig } from "../config/mail";
-
-let cached: Transporter | null = null;
-
-export function getMailer(): Transporter {
-  if (cached) return cached;
-
-  const cfg = getMailConfig();
-
-  cached = nodemailer.createTransport({
-    host: cfg.host,
-    port: cfg.port,
-    secure: cfg.secure, // false for 587 (STARTTLS), true for 465 (SSL)
-    auth: { user: cfg.user, pass: cfg.pass }
-  });
-
-  return cached;
-}
 
 export async function sendMail(args: {
   to: string;
@@ -26,15 +7,10 @@ export async function sendMail(args: {
   html?: string;
 }) {
   const cfg = getMailConfig();
-  const transporter = getMailer();
 
-  const info = await transporter.sendMail({
-    from: cfg.from,
-    to: args.to,
-    subject: args.subject,
-    text: args.text,
-    html: args.html
-  });
+  if ((process.env.NODE_ENV ?? "development") !== "production") {
+    return { messageId: `dev-noop-${Date.now()}` };
+  }
 
-  return { messageId: info.messageId };
+  throw new Error(`SMTP transport is not available. Failed to send to ${args.to} from ${cfg.from}`);
 }

@@ -1,5 +1,64 @@
-﻿import type { Request, Response } from "express";
-import { notImplemented } from "./_common.controller";
+import type { Request, Response } from "express";
+import { z } from "zod";
+import { AppError } from "../domain/errors";
+import { serviceCatalog } from "../data.services";
 
-export function createBooking(req: Request, res: Response) { return notImplemented(req, res); }
-export function trackBooking(req: Request, res: Response) { return notImplemented(req, res); }
+const createBookingSchema = z.object({
+  fullName: z.string().min(2),
+  email: z.string().email(),
+  serviceSlug: z.string().min(1),
+  preferredAt: z.coerce.date(),
+  notes: z.string().max(2000).optional().or(z.literal(""))
+});
+
+const trackSchema = z.object({
+  booking: z.string().min(1),
+  email: z.string().email()
+});
+
+function makeBookingRef() {
+  return `BKG-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
+export function createBooking(req: Request, res: Response) {
+  const parsed = createBookingSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+    throw new AppError("VALIDATION_ERROR", "Invalid booking data", 400, { fieldErrors });
+  }
+
+  const service = serviceCatalog.find((item) => item.slug === parsed.data.serviceSlug);
+  if (!service) {
+    throw new AppError("SERVICE_NOT_FOUND", "Selected service was not found", 404);
+  }
+
+  const booking = {
+    bkgRef: makeBookingRef(),
+    status: "NEW",
+    fullName: parsed.data.fullName,
+    email: parsed.data.email,
+    serviceSlug: service.slug,
+    serviceName: service.name,
+    preferredAt: parsed.data.preferredAt.toISOString(),
+    notes: parsed.data.notes || null
+  };
+
+  return res.status(201).json({ ok: true, booking, bkgRef: booking.bkgRef });
+}
+
+export function trackBooking(req: Request, res: Response) {
+  const parsed = trackSchema.safeParse(req.query);
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+    throw new AppError("VALIDATION_ERROR", "Invalid tracking query", 400, { fieldErrors });
+  }
+
+  return res.status(200).json({
+    ok: true,
+    booking: {
+      bkgRef: parsed.data.booking,
+      email: parsed.data.email,
+      status: "NEW"
+    }
+  });
+}

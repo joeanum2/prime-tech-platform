@@ -26,7 +26,8 @@ export async function submitContact(req: Request, res: Response) {
     throw new AppError("VALIDATION_ERROR", "Invalid contact data", 400, { fieldErrors });
   }
 
-  const notifyTo = (process.env.CONTACT_NOTIFY_TO || process.env.ADMIN_NOTIFY_TO || "").trim();
+  const defaultNotify = (process.env.NODE_ENV ?? "development") !== "production" ? "dev-null@example.com" : "";
+  const notifyTo = (process.env.CONTACT_NOTIFY_TO || process.env.ADMIN_NOTIFY_TO || defaultNotify).trim();
   if (!notifyTo) {
     throw new AppError("CONTACT_NOT_CONFIGURED", "Contact notifications not configured", 500);
   }

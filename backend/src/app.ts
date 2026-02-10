@@ -17,8 +17,10 @@ import { storageRoutes } from "./routes/storage.routes";
 import { releasesRoutes } from "./routes/releases.routes";
 import { accountRoutes } from "./routes/account.routes";
 import { bookingsRoutes } from "./routes/bookings.routes";
+import { servicesRoutes } from "./routes/services.routes";
 import { adminRoutes } from "./routes/admin.routes";
 import { webhooksRoutes } from "./routes/webhooks.routes";
+import { contactRoutes } from "./routes/contact.routes";
 
 export function buildApp() {
   const env = loadEnv();
@@ -47,6 +49,8 @@ export function buildApp() {
   app.use("/api/releases", releasesRoutes);
   app.use("/api/account", accountRoutes);
   app.use("/api/bookings", bookingsRoutes);
+  app.use("/api/services", servicesRoutes);
+  app.use("/api/contact", contactRoutes);
   app.use("/api/admin", adminRoutes);
 
   // Error handler LAST
