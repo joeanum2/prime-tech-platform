@@ -7,7 +7,7 @@ const createBookingSchema = z.object({
   fullName: z.string().min(2),
   email: z.string().email(),
   serviceSlug: z.string().min(1),
-  preferredAt: z.coerce.date(),
+  preferredDate: z.string().min(1),
   notes: z.string().max(2000).optional().or(z.literal(""))
 });
 
@@ -39,7 +39,7 @@ export function createBooking(req: Request, res: Response) {
     email: parsed.data.email,
     serviceSlug: service.slug,
     serviceName: service.name,
-    preferredAt: parsed.data.preferredAt.toISOString(),
+    preferredDate: parsed.data.preferredDate,
     notes: parsed.data.notes || null
   };
 

@@ -5,7 +5,7 @@ export type BookingEmailInput = {
   fullName: string;
   email: string;
   serviceName: string;
-  preferredAt: Date;
+  preferredDate: string;
   notes?: string | null;
 };
 
@@ -22,14 +22,13 @@ function makeTrackUrl(bkgRef: string, email: string) {
   return `${base}/track?${qs}`;
 }
 
-function formatDate(d: Date) {
+function formatDate(value: string) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
   return new Intl.DateTimeFormat("en-GB", {
     year: "numeric",
     month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
+    day: "2-digit"
   }).format(d);
 }
 
@@ -46,7 +45,7 @@ export function renderBookingCustomerEmail(booking: BookingEmailInput): EmailCon
   const subject = `Booking received: ${booking.bkgRef}`;
   const trackUrl = makeTrackUrl(booking.bkgRef, booking.email);
 
-  const preferredAt = formatDate(booking.preferredAt);
+  const preferredDate = formatDate(booking.preferredDate);
   const notesText = booking.notes ? booking.notes : "";
   const notesBlockText = notesText ? `Notes: ${notesText}\n` : "";
   const trackBlockText = trackUrl ? `Track your booking: ${trackUrl}\n` : "";
@@ -56,7 +55,7 @@ export function renderBookingCustomerEmail(booking: BookingEmailInput): EmailCon
     `Thank you for your booking request. We have received your details.\n\n` +
     `Booking reference: ${booking.bkgRef}\n` +
     `Service: ${booking.serviceName}\n` +
-    `Preferred date/time: ${preferredAt}\n` +
+    `Preferred date: ${preferredDate}\n` +
     `${notesBlockText}` +
     `${trackBlockText}\n` +
     `We will contact you shortly to confirm the appointment.\n\n` +
@@ -76,7 +75,7 @@ export function renderBookingCustomerEmail(booking: BookingEmailInput): EmailCon
     `<p>` +
     `<strong>Booking reference:</strong> ${escapeHtml(booking.bkgRef)}<br>` +
     `<strong>Service:</strong> ${escapeHtml(booking.serviceName)}<br>` +
-    `<strong>Preferred date/time:</strong> ${escapeHtml(preferredAt)}` +
+    `<strong>Preferred date:</strong> ${escapeHtml(preferredDate)}` +
     `</p>` +
     `${notesHtml}` +
     `${trackHtml}` +
@@ -91,7 +90,7 @@ export function renderBookingAdminEmail(booking: BookingEmailInput): EmailConten
   const subject = `New booking: ${booking.bkgRef}`;
   const trackUrl = makeTrackUrl(booking.bkgRef, booking.email);
 
-  const preferredAt = formatDate(booking.preferredAt);
+  const preferredDate = formatDate(booking.preferredDate);
   const notesText = booking.notes ? booking.notes : "";
   const notesBlockText = notesText ? `Notes: ${notesText}\n` : "";
   const trackBlockText = trackUrl ? `Track: ${trackUrl}\n` : "";
@@ -102,7 +101,7 @@ export function renderBookingAdminEmail(booking: BookingEmailInput): EmailConten
     `Customer: ${booking.fullName}\n` +
     `Email: ${booking.email}\n` +
     `Service: ${booking.serviceName}\n` +
-    `Preferred date/time: ${preferredAt}\n` +
+    `Preferred date: ${preferredDate}\n` +
     `${notesBlockText}` +
     `${trackBlockText}`;
 
@@ -120,7 +119,7 @@ export function renderBookingAdminEmail(booking: BookingEmailInput): EmailConten
     `<strong>Customer:</strong> ${escapeHtml(booking.fullName)}<br>` +
     `<strong>Email:</strong> ${escapeHtml(booking.email)}<br>` +
     `<strong>Service:</strong> ${escapeHtml(booking.serviceName)}<br>` +
-    `<strong>Preferred date/time:</strong> ${escapeHtml(preferredAt)}` +
+    `<strong>Preferred date:</strong> ${escapeHtml(preferredDate)}` +
     `</p>` +
     `${notesHtml}` +
     `${trackHtml}` +
