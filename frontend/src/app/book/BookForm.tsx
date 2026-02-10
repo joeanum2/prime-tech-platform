@@ -57,24 +57,17 @@ export function BookForm() {
   }
 
   function validateField(name: keyof BookingFormValues) {
-    // bookingSchema expects preferredAt, so map preferredDate -> preferredAt for validation
-    const preferredAtIso = values.preferredDate
-      ? new Date(`${values.preferredDate}T00:00:00`).toISOString()
-      : "";
-
     const mapped = {
       fullName: values.fullName,
       email: values.email,
       serviceSlug: values.serviceSlug,
-      preferredAt: preferredAtIso,
+      preferredDate: values.preferredDate,
       notes: values.notes
     };
 
     const result = bookingSchema.safeParse(mapped);
     if (!result.success) {
-      // If user is validating preferredDate, schema reports preferredAt
-      const targetPath = name === "preferredDate" ? "preferredAt" : name;
-      const issue = result.error.issues.find((item) => item.path[0] === targetPath);
+      const issue = result.error.issues.find((item) => item.path[0] === name);
       if (issue) {
         setFieldErrors((prev) => ({ ...prev, [name]: issue.message }));
       }
@@ -87,15 +80,11 @@ export function BookForm() {
     setFallbackError(null);
     setSuccessMessage(null);
 
-    const preferredAtIso = values.preferredDate
-      ? new Date(`${values.preferredDate}T00:00:00`).toISOString()
-      : "";
-
     const payload = {
       fullName: values.fullName,
       email: values.email,
       serviceSlug: values.serviceSlug,
-      preferredAt: preferredAtIso,
+      preferredDate: values.preferredDate,
       notes: values.notes
     };
 
@@ -106,12 +95,6 @@ export function BookForm() {
         const key = String(issue.path[0]);
         errors[key] = issue.message;
       });
-
-      // Map preferredAt validation error back to preferredDate for UI
-      if (errors.preferredAt) {
-        errors.preferredDate = errors.preferredAt;
-        delete errors.preferredAt;
-      }
 
       setFieldErrors(errors);
       return;

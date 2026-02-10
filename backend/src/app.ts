@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import cookieParser from "cookie-parser";
 
 import { loadEnv } from "./config/env";
@@ -25,6 +26,12 @@ import { contactRoutes } from "./routes/contact.routes";
 export function buildApp() {
   const env = loadEnv();
   const app = express();
+  app.use(
+    cors({
+      origin: "http://localhost:3000",
+      credentials: true
+    })
+  );
 
   // Tenant resolution (must be early)
   app.use("/api", resolveTenant);
@@ -58,3 +65,4 @@ export function buildApp() {
 
   return app;
 }
+
