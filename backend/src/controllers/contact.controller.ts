@@ -29,7 +29,7 @@ export async function submitContact(req: Request, res: Response) {
   const defaultNotify = (process.env.NODE_ENV ?? "development") !== "production" ? "dev-null@example.com" : "";
   const notifyTo = (process.env.CONTACT_NOTIFY_TO || process.env.ADMIN_NOTIFY_TO || defaultNotify).trim();
   if (!notifyTo) {
-    throw new AppError("CONTACT_NOT_CONFIGURED", "Contact notifications not configured", 500);
+    throw new AppError("VALIDATION_ERROR", "Contact notifications not configured", 500);
   }
 
   const { fullName, email, subject, message } = parsed.data;

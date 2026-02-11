@@ -2,6 +2,8 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import { AppError } from "../domain/errors";
 import { serviceCatalog } from "../data.services";
+import { sendMail } from "../lib/mailer";
+import { renderBookingAdminEmail, renderBookingCustomerEmail } from "../lib/emailTemplates";
 
 const createBookingSchema = z.object({
   fullName: z.string().min(2),
@@ -20,7 +22,7 @@ function makeBookingRef() {
   return `BKG-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
-export function createBooking(req: Request, res: Response) {
+export async function createBooking(req: Request, res: Response) {
   const parsed = createBookingSchema.safeParse(req.body);
   if (!parsed.success) {
     const fieldErrors = parsed.error.flatten().fieldErrors;
@@ -42,6 +44,21 @@ export function createBooking(req: Request, res: Response) {
     preferredDate: parsed.data.preferredDate,
     notes: parsed.data.notes || null
   };
+
+  const customerEmail = renderBookingCustomerEmail(booking);
+  const adminEmail = renderBookingAdminEmail(booking);
+  await sendMail({
+    to: booking.email,
+    subject: customerEmail.subject,
+    text: customerEmail.text,
+    html: customerEmail.html
+  });
+  await sendMail({
+    to: "bookings@joetechx.co.uk",
+    subject: adminEmail.subject,
+    text: adminEmail.text,
+    html: adminEmail.html
+  });
 
   return res.status(201).json({ ok: true, booking, bkgRef: booking.bkgRef });
 }

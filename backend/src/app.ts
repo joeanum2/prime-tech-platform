@@ -22,6 +22,7 @@ import { servicesRoutes } from "./routes/services.routes";
 import { adminRoutes } from "./routes/admin.routes";
 import { webhooksRoutes } from "./routes/webhooks.routes";
 import { contactRoutes } from "./routes/contact.routes";
+import { adminTestEmail } from "./controllers/admin.email.controller";
 
 export function buildApp() {
   const env = loadEnv();
@@ -58,6 +59,17 @@ export function buildApp() {
   app.use("/api/bookings", bookingsRoutes);
   app.use("/api/services", servicesRoutes);
   app.use("/api/contact", contactRoutes);
+  app.post("/api/admin/test-email", (req, res, next) => {
+    const adminToken = process.env.ADMIN_TOKEN;
+    if (!adminToken) return res.status(500).json({ error: "ADMIN_TOKEN not configured" });
+
+    const auth = req.header("authorization");
+    const xAdmin = req.header("x-admin-token");
+    const bearerToken = auth?.startsWith("Bearer ") ? auth.slice("Bearer ".length) : null;
+
+    if (xAdmin === adminToken || bearerToken === adminToken) return next();
+    return res.status(401).json({ error: "Not authenticated" });
+  }, adminTestEmail);
   app.use("/api/admin", adminRoutes);
 
   // Error handler LAST
