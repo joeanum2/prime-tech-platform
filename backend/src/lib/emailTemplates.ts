@@ -48,7 +48,7 @@ export function renderBookingCustomerEmail(booking: BookingEmailInput): EmailCon
   const preferredDate = formatDate(booking.preferredDate);
   const notesText = booking.notes ? booking.notes : "";
   const notesBlockText = notesText ? `Notes: ${notesText}\n` : "";
-  const trackBlockText = trackUrl ? `Track your booking: ${trackUrl}\n` : "";
+  const trackBlockText = trackUrl ? `Track your booking:\n${trackUrl}\n` : "";
 
   const text =
     `Hello ${booking.fullName},\n\n` +
@@ -66,7 +66,9 @@ export function renderBookingCustomerEmail(booking: BookingEmailInput): EmailCon
     ? `<p><strong>Notes:</strong><br>${escapeHtml(notesText).replace(/\n/g, "<br>")}</p>`
     : "";
 
-  const trackHtml = trackUrl ? `<p><a href="${trackUrl}">Track your booking</a></p>` : "";
+  const trackHtml = trackUrl
+    ? `<p><strong>Track your booking:</strong><br><a href="${trackUrl}">${escapeHtml(trackUrl)}</a></p>`
+    : "";
 
   const html =
     `<div style="font-family: Arial, sans-serif; line-height: 1.5;">` +
@@ -93,7 +95,7 @@ export function renderBookingAdminEmail(booking: BookingEmailInput): EmailConten
   const preferredDate = formatDate(booking.preferredDate);
   const notesText = booking.notes ? booking.notes : "";
   const notesBlockText = notesText ? `Notes: ${notesText}\n` : "";
-  const trackBlockText = trackUrl ? `Track: ${trackUrl}\n` : "";
+  const trackBlockText = trackUrl ? `Track your booking:\n${trackUrl}\n` : "";
 
   const text =
     `New booking received.\n\n` +
@@ -109,7 +111,9 @@ export function renderBookingAdminEmail(booking: BookingEmailInput): EmailConten
     ? `<p><strong>Notes:</strong><br>${escapeHtml(notesText).replace(/\n/g, "<br>")}</p>`
     : "";
 
-  const trackHtml = trackUrl ? `<p><a href="${trackUrl}">Track booking</a></p>` : "";
+  const trackHtml = trackUrl
+    ? `<p><strong>Track your booking:</strong><br><a href="${trackUrl}">${escapeHtml(trackUrl)}</a></p>`
+    : "";
 
   const html =
     `<div style="font-family: Arial, sans-serif; line-height: 1.5;">` +

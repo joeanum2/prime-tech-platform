@@ -22,6 +22,12 @@ function makeBookingRef() {
   return `BKG-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
+function makeTrackUrl(bkgRef: string, email: string) {
+  const base = (process.env.SITE_URL || "").trim().replace(/\/$/, "");
+  if (!base) return "";
+  return `${base}/track?booking=${encodeURIComponent(bkgRef)}&email=${encodeURIComponent(email)}`;
+}
+
 export async function createBooking(req: Request, res: Response) {
   const parsed = createBookingSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -47,6 +53,10 @@ export async function createBooking(req: Request, res: Response) {
 
   const customerEmail = renderBookingCustomerEmail(booking);
   const adminEmail = renderBookingAdminEmail(booking);
+  const trackUrl = makeTrackUrl(booking.bkgRef, booking.email);
+  if (trackUrl) {
+    console.info(`[booking-email] tracking link included for ${booking.bkgRef}: ${trackUrl}`);
+  }
   await sendMail({
     to: booking.email,
     subject: customerEmail.subject,
