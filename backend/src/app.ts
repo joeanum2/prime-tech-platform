@@ -23,6 +23,7 @@ import { adminRoutes } from "./routes/admin.routes";
 import { webhooksRoutes } from "./routes/webhooks.routes";
 import { contactRoutes } from "./routes/contact.routes";
 import { adminTestEmail } from "./controllers/admin.email.controller";
+import { trackBooking } from "./controllers/bookings.controller";
 
 export function buildApp() {
   const env = loadEnv();
@@ -57,6 +58,7 @@ export function buildApp() {
   app.use("/api/releases", releasesRoutes);
   app.use("/api/account", accountRoutes);
   app.use("/api/bookings", bookingsRoutes);
+  app.get("/api/track", trackBooking);
   app.use("/api/services", servicesRoutes);
   app.use("/api/contact", contactRoutes);
   app.post("/api/admin/test-email", (req, res, next) => {

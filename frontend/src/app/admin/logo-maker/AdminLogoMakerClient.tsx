@@ -187,7 +187,7 @@ export default function AdminLogoMakerClient() {
     exportSize: 512
   });
 
-  const [status, setStatus] = useState<{ kind: "idle" | "ok" | "err"; msg?: string }>({ kind: "idle" });
+  const [status, setStatus] = useState<{ kind: "idle" | "saving" | "ok" | "err"; msg?: string }>({ kind: "idle" });
 
   const svg = useMemo(() => buildLogoSvg(cfg), [cfg]);
   const previewSrc = useMemo(() => svgToDataUri(svg), [svg]);
@@ -216,7 +216,7 @@ export default function AdminLogoMakerClient() {
   }
 
   async function onSaveAsAppLogo() {
-    setStatus({ kind: "idle" });
+    setStatus({ kind: "saving", msg: "Saving..." });
     try {
       const pngBlob = await svgToPngBlob(svg, 512, cfg.background);
       const pngBase64 = await blobToBase64DataUrl(pngBlob);
@@ -229,13 +229,12 @@ export default function AdminLogoMakerClient() {
           meta: {
             brandName: cfg.brandName,
             tagline: cfg.tagline,
-            icon: cfg.icon,
-            shape: cfg.shape,
-            primary: cfg.primary,
-            accent: cfg.accent,
-            background: cfg.background,
-            fontWeight: cfg.fontWeight,
-            exportSize: 512
+            colors: {
+              primary: cfg.primary,
+              accent: cfg.accent,
+              background: cfg.background
+            },
+            updatedAt: new Date().toISOString()
           }
         })
       });
@@ -245,7 +244,7 @@ export default function AdminLogoMakerClient() {
         throw new Error(`Save failed (${res.status}): ${text}`);
       }
 
-      setStatus({ kind: "ok", msg: "Saved as App Logo. Refresh the site to see it in the header." });
+      setStatus({ kind: "ok", msg: "Saved." });
     } catch (e: any) {
       setStatus({ kind: "err", msg: e?.message ?? "Save failed." });
     }
@@ -403,8 +402,9 @@ export default function AdminLogoMakerClient() {
               className="rounded-xl px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white"
               onClick={onSaveAsAppLogo}
               type="button"
+              disabled={status.kind === "saving"}
             >
-              Save as App Logo
+              {status.kind === "saving" ? "Saving..." : "Save as App Logo"}
             </button>
 
             {status.kind !== "idle" && (
@@ -413,6 +413,8 @@ export default function AdminLogoMakerClient() {
                   "text-sm px-3 py-2 rounded-xl border " +
                   (status.kind === "ok"
                     ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
+                    : status.kind === "saving"
+                      ? "border-blue-400/30 bg-blue-500/10 text-blue-100"
                     : "border-red-400/30 bg-red-500/10 text-red-200")
                 }
               >

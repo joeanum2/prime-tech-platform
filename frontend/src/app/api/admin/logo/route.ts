@@ -9,13 +9,11 @@ const bodySchema = z.object({
   meta: z.object({
     brandName: z.string().optional(),
     tagline: z.string().optional(),
-    primary: z.string().optional(),
-    accent: z.string().optional(),
-    bg: z.string().optional(),
-    icon: z.string().optional(),
-    shape: z.string().optional(),
-    fontWeight: z.number().optional(),
-    exportSize: z.number().optional(),
+    colors: z.object({
+      primary: z.string().optional(),
+      accent: z.string().optional(),
+      background: z.string().optional()
+    }).optional(),
     updatedAt: z.string().optional()
   })
 });
@@ -40,6 +38,7 @@ export async function POST(req: Request) {
   let buf: Buffer;
   try {
     buf = Buffer.from(b64, "base64");
+    if (!buf.length) throw new Error("empty");
   } catch {
     return NextResponse.json({ error: "Invalid base64" }, { status: 400 });
   }

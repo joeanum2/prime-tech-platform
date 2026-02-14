@@ -11,6 +11,7 @@ const EnvSchema = z.object({
   COOKIE_SECURE: z.coerce.boolean().default(false),
   COOKIE_SAMESITE: z.enum(["lax","strict","none"]).default("lax"),
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
+  SITE_URL: z.string().url().optional(),
 
   STRIPE_SECRET_KEY: z.string().min(1).default("sk_test_dev_placeholder"),
   STRIPE_WEBHOOK_SECRET: z.string().min(1).default("whsec_dev_placeholder"),

@@ -31,7 +31,7 @@ export function BrandLogo({ className }: { className?: string }) {
   }, []);
 
   const v = meta?.updatedAt ? encodeURIComponent(meta.updatedAt) : "";
-  const src = meta ? `/branding/app-logo.png?v=${v}` : null;
+  const src = meta ? `/branding/app-logo.png?ts=${v}` : null;
 
   if (src) {
     return <img src={src} alt="App logo" className={className} />;
@@ -43,7 +43,7 @@ export function BrandLogo({ className }: { className?: string }) {
 
   return (
     <span className={className} style={{ fontWeight: 800 }}>
-      Prime Tech
+      Prime Tech Services
     </span>
   );
 }

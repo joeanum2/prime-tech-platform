@@ -1,4 +1,5 @@
 // backend/src/lib/emailTemplates.ts
+import { makeBookingTrackUrl } from "./siteUrl";
 
 export type BookingEmailInput = {
   bkgRef: string;
@@ -14,13 +15,6 @@ type EmailContent = {
   text: string;
   html: string;
 };
-
-function makeTrackUrl(bkgRef: string, email: string) {
-  const base = (process.env.SITE_URL || "").trim().replace(/\/$/, "");
-  if (!base) return "";
-  const qs = `booking=${encodeURIComponent(bkgRef)}&email=${encodeURIComponent(email)}`;
-  return `${base}/track?${qs}`;
-}
 
 function formatDate(value: string) {
   const d = new Date(value);
@@ -43,7 +37,7 @@ function escapeHtml(s: string) {
 
 export function renderBookingCustomerEmail(booking: BookingEmailInput): EmailContent {
   const subject = `Booking received: ${booking.bkgRef}`;
-  const trackUrl = makeTrackUrl(booking.bkgRef, booking.email);
+  const trackUrl = makeBookingTrackUrl(booking.bkgRef, booking.email);
 
   const preferredDate = formatDate(booking.preferredDate);
   const notesText = booking.notes ? booking.notes : "";
@@ -67,7 +61,7 @@ export function renderBookingCustomerEmail(booking: BookingEmailInput): EmailCon
     : "";
 
   const trackHtml = trackUrl
-    ? `<p><strong>Track your booking:</strong><br><a href="${trackUrl}">${escapeHtml(trackUrl)}</a></p>`
+    ? `<p><strong>Track your booking:</strong><br><a href="${trackUrl}">Track your booking</a><br>${escapeHtml(trackUrl)}</p>`
     : "";
 
   const html =
@@ -90,7 +84,7 @@ export function renderBookingCustomerEmail(booking: BookingEmailInput): EmailCon
 
 export function renderBookingAdminEmail(booking: BookingEmailInput): EmailContent {
   const subject = `New booking: ${booking.bkgRef}`;
-  const trackUrl = makeTrackUrl(booking.bkgRef, booking.email);
+  const trackUrl = makeBookingTrackUrl(booking.bkgRef, booking.email);
 
   const preferredDate = formatDate(booking.preferredDate);
   const notesText = booking.notes ? booking.notes : "";
@@ -112,7 +106,7 @@ export function renderBookingAdminEmail(booking: BookingEmailInput): EmailConten
     : "";
 
   const trackHtml = trackUrl
-    ? `<p><strong>Track your booking:</strong><br><a href="${trackUrl}">${escapeHtml(trackUrl)}</a></p>`
+    ? `<p><strong>Track your booking:</strong><br><a href="${trackUrl}">Track your booking</a><br>${escapeHtml(trackUrl)}</p>`
     : "";
 
   const html =
