@@ -1,17 +1,24 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { makeLogoSvg } from "@/lib/logoMaker";
+import {
+  A4_CORPORATE_CLEAN,
+  A5_PRIME_TECH_BUSINESS_STANDARD,
+  type LogoMakerInput,
+  type LogoType
+} from "@/lib/logoPresets";
 
 type LogoConfig = {
   brandName: string;
   tagline: string;
-  icon: "chip" | "bolt" | "wrench" | "shield" | "globe";
-  shape: "rounded" | "square" | "pill";
+  icon: "chip";
+  shape: "rounded";
   primary: string;
   accent: string;
   background: string;
-  fontWeight: 500 | 600 | 700 | 800;
-  exportSize: number; // px
+  fontWeight: number;
+  exportSize: number;
 };
 
 function clampInt(n: number, min: number, max: number) {
@@ -19,11 +26,12 @@ function clampInt(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.trunc(n)));
 }
 
+function asColorInputValue(value: string, fallback = "#000000") {
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : fallback;
+}
+
 function svgToDataUri(svg: string) {
-  // Robust encoding for <img src> preview
-  const encoded = encodeURIComponent(svg)
-    .replace(/'/g, "%27")
-    .replace(/"/g, "%22");
+  const encoded = encodeURIComponent(svg).replace(/'/g, "%27").replace(/"/g, "%22");
   return `data:image/svg+xml;charset=utf-8,${encoded}`;
 }
 
@@ -31,13 +39,10 @@ function svgToBlob(svg: string) {
   return new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
 }
 
-async function svgToPngBlob(svg: string, size: number, background: string) {
+async function svgToPngBlob(svg: string, width: number, height: number, background: string) {
   const svgUrl = URL.createObjectURL(svgToBlob(svg));
   try {
     const img = new Image();
-    img.decoding = "async";
-    img.loading = "eager";
-
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
       img.onerror = () => reject(new Error("Failed to load SVG for PNG export"));
@@ -45,26 +50,35 @@ async function svgToPngBlob(svg: string, size: number, background: string) {
     });
 
     const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas context not available");
 
-    // Background fill so PNG looks correct
-    ctx.fillStyle = background;
-    ctx.fillRect(0, 0, size, size);
+    if (background && background !== "transparent") {
+      ctx.fillStyle = background;
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      ctx.clearRect(0, 0, width, height);
+    }
+    ctx.drawImage(img, 0, 0, width, height);
 
-    // Draw SVG into canvas
-    ctx.drawImage(img, 0, 0, size, size);
-
-    const blob: Blob = await new Promise((resolve, reject) => {
+    return await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG export failed"))), "image/png");
     });
-
-    return blob;
   } finally {
     URL.revokeObjectURL(svgUrl);
   }
+}
+
+function getExportDimensions(logoType: LogoType, exportSize: number) {
+  if (logoType === "business") {
+    const width = clampInt(exportSize, 400, 2400);
+    const height = Math.round((width * 250) / 800);
+    return { width, height };
+  }
+  const size = clampInt(exportSize, 128, 2048);
+  return { width: size, height: size };
 }
 
 async function blobToBase64DataUrl(blob: Blob) {
@@ -87,117 +101,24 @@ function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 500);
 }
 
-function iconSvg(icon: LogoConfig["icon"], color: string) {
-  // simple inline icon set
-  switch (icon) {
-    case "bolt":
-      return `<path fill="${color}" d="M28 6L10 34h12l-2 24 20-32H28z"/>`;
-    case "wrench":
-      return `<path fill="${color}" d="M45 9a14 14 0 0 1-18 13L14 35l7 7 13-13A14 14 0 1 1 45 9z"/><path fill="${color}" d="M10 39l-2 2a4 4 0 0 0 0 6l1 1a4 4 0 0 0 6 0l2-2-7-7z"/>`;
-    case "shield":
-      return `<path fill="${color}" d="M32 6l18 8v14c0 14-8 26-18 30C22 54 14 42 14 28V14l18-8z"/><path fill="${color}" opacity="0.25" d="M32 10v44c8-4 14-14 14-26V16l-14-6z"/>`;
-    case "globe":
-      return `<circle cx="32" cy="32" r="22" fill="none" stroke="${color}" stroke-width="4"/><path d="M10 32h44" stroke="${color}" stroke-width="4"/><path d="M32 10c8 8 8 36 0 44M32 10c-8 8-8 36 0 44" fill="none" stroke="${color}" stroke-width="4"/>`;
-    case "chip":
-    default:
-      return `<rect x="18" y="18" width="28" height="28" rx="6" fill="none" stroke="${color}" stroke-width="4"/>
-              <path d="M12 24h6M12 32h6M12 40h6M46 24h6M46 32h6M46 40h6M24 12v6M32 12v6M40 12v6M24 46v6M32 46v6M40 46v6"
-                stroke="${color}" stroke-width="4" stroke-linecap="round"/>`;
-  }
-}
-
-function buildLogoSvg(cfg: LogoConfig) {
-  const size = 512;
-  const pad = 54;
-
-  const rx =
-    cfg.shape === "rounded" ? 64 :
-    cfg.shape === "square"  ? 18 :
-    999;
-
-  const brand = cfg.brandName.trim() || "Prime Tech Services";
-  const tag = cfg.tagline.trim() || "Repairs • Software • Managed Releases";
-
-  // Layout
-  const iconBox = { x: pad, y: pad, w: 130, h: 130 };
-  const textX = iconBox.x + iconBox.w + 28;
-  const brandY = iconBox.y + 70;
-  const tagY = brandY + 44;
-
-  const iconMark = iconSvg(cfg.icon, cfg.primary);
-
-  return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <defs>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-opacity="0.25"/>
-    </filter>
-  </defs>
-
-  <rect x="0" y="0" width="${size}" height="${size}" rx="${rx}" fill="${cfg.background}"/>
-  <rect x="${pad}" y="${pad}" width="${size - pad * 2}" height="${size - pad * 2}" rx="${Math.max(24, rx/3)}"
-        fill="rgba(255,255,255,0.04)" filter="url(#shadow)"/>
-
-  <!-- Icon -->
-  <g transform="translate(${iconBox.x},${iconBox.y})">
-    <rect x="0" y="0" width="${iconBox.w}" height="${iconBox.h}" rx="${Math.max(18, rx/6)}" fill="rgba(255,255,255,0.06)"/>
-    <g transform="translate(12,12) scale(1)">
-      <svg width="106" height="106" viewBox="0 0 64 64">
-        ${iconMark}
-      </svg>
-    </g>
-  </g>
-
-  <!-- Text -->
-  <text x="${textX}" y="${brandY}" fill="#F5F7FF"
-        font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial"
-        font-size="44" font-weight="${cfg.fontWeight}" letter-spacing="0.2">
-    ${escapeXml(brand)}
-  </text>
-  <text x="${textX}" y="${tagY}" fill="rgba(245,247,255,0.74)"
-        font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial"
-        font-size="22" font-weight="600">
-    ${escapeXml(tag)}
-  </text>
-
-  <!-- Accent line -->
-  <rect x="${textX}" y="${tagY + 22}" width="${size - textX - pad}" height="8" rx="4" fill="${cfg.accent}" opacity="0.9"/>
-</svg>`.trim();
-}
-
-function escapeXml(s: string) {
-  return s
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&apos;");
-}
-
 export default function AdminLogoMakerClient() {
-  const [cfg, setCfg] = useState<LogoConfig>({
-    brandName: "Prime Tech Services",
-    tagline: "Repairs • Software • Managed Releases",
-    icon: "chip",
-    shape: "rounded",
-    primary: "#3B82F6",
-    accent: "#F97316",
-    background: "#0B1220",
-    fontWeight: 800,
-    exportSize: 512
-  });
-
+  const [logoType, setLogoType] = useState<LogoType>(A5_PRIME_TECH_BUSINESS_STANDARD.input.logoType);
+  const [cfg, setCfg] = useState<LogoConfig>(A5_PRIME_TECH_BUSINESS_STANDARD.input);
+  const [presetId, setPresetId] = useState<"A4" | "A5">("A5");
   const [status, setStatus] = useState<{ kind: "idle" | "saving" | "ok" | "err"; msg?: string }>({ kind: "idle" });
 
-  const svg = useMemo(() => buildLogoSvg(cfg), [cfg]);
+  const { width: exportWidth, height: exportHeight } = getExportDimensions(logoType, cfg.exportSize);
+  const exportSize = exportWidth;
+  const svg = useMemo(() => {
+    const input: LogoMakerInput = { ...cfg, logoType, exportSize };
+    return makeLogoSvg(input).svg;
+  }, [cfg, logoType, exportSize]);
   const previewSrc = useMemo(() => svgToDataUri(svg), [svg]);
-
-  const exportSize = clampInt(cfg.exportSize, 128, 2048);
 
   async function onExportSvg() {
     setStatus({ kind: "idle" });
     try {
-      downloadBlob(svgToBlob(svg), "app-logo.svg");
+      downloadBlob(svgToBlob(svg), `app-logo-${logoType}.svg`);
       setStatus({ kind: "ok", msg: "SVG exported." });
     } catch (e: any) {
       setStatus({ kind: "err", msg: e?.message ?? "SVG export failed." });
@@ -207,8 +128,8 @@ export default function AdminLogoMakerClient() {
   async function onExportPng() {
     setStatus({ kind: "idle" });
     try {
-      const pngBlob = await svgToPngBlob(svg, exportSize, cfg.background);
-      downloadBlob(pngBlob, `app-logo-${exportSize}.png`);
+      const pngBlob = await svgToPngBlob(svg, exportWidth, exportHeight, cfg.background);
+      downloadBlob(pngBlob, `app-logo-${logoType}-${exportWidth}x${exportHeight}.png`);
       setStatus({ kind: "ok", msg: "PNG exported." });
     } catch (e: any) {
       setStatus({ kind: "err", msg: e?.message ?? "PNG export failed." });
@@ -218,7 +139,8 @@ export default function AdminLogoMakerClient() {
   async function onSaveAsAppLogo() {
     setStatus({ kind: "saving", msg: "Saving..." });
     try {
-      const pngBlob = await svgToPngBlob(svg, 512, cfg.background);
+      const saveDims = logoType === "business" ? { width: 800, height: 250 } : { width: 512, height: 512 };
+      const pngBlob = await svgToPngBlob(svg, saveDims.width, saveDims.height, cfg.background);
       const pngBase64 = await blobToBase64DataUrl(pngBlob);
 
       const res = await fetch("/api/admin/logo", {
@@ -243,7 +165,6 @@ export default function AdminLogoMakerClient() {
         const text = await res.text();
         throw new Error(`Save failed (${res.status}): ${text}`);
       }
-
       setStatus({ kind: "ok", msg: "Saved." });
     } catch (e: any) {
       setStatus({ kind: "err", msg: e?.message ?? "Save failed." });
@@ -252,19 +173,73 @@ export default function AdminLogoMakerClient() {
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Controls */}
-        <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-5">
-          <div className="text-lg font-semibold mb-1">Logo Maker</div>
-          <div className="text-sm opacity-80 mb-5">
-            Create a simple logo for your app. Export as SVG/PNG or save as the app’s global logo.
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-5 lg:col-span-2">
+          <div className="mb-1 text-lg font-semibold">Logo Maker</div>
+          <div className="mb-5 text-sm opacity-80">Create, export, and save your app logo.</div>
+
+          <div className="mb-4 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm">
+            Preset:
+            <select
+              className="ml-2 rounded border border-white/10 bg-transparent px-2 py-1"
+              value={presetId}
+              onChange={(e) => {
+                const next = e.target.value as "A4" | "A5";
+                setPresetId(next);
+                const preset = next === "A5" ? A5_PRIME_TECH_BUSINESS_STANDARD : A4_CORPORATE_CLEAN;
+                setLogoType(preset.input.logoType);
+                setCfg(preset.input);
+              }}
+            >
+              <option value="A4">{A4_CORPORATE_CLEAN.name}</option>
+              <option value="A5">{A5_PRIME_TECH_BUSINESS_STANDARD.name}</option>
+            </select>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <label className="text-sm">
+              <div className="mb-1 opacity-80">Logo type</div>
+              <select
+                className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 outline-none"
+                value={logoType}
+                onChange={(e) => {
+                  const nextType = e.target.value as LogoType;
+                  setLogoType(nextType);
+                  setCfg((prev) => {
+                    if (nextType === "business") {
+                      return {
+                        ...prev,
+                        brandName: "Prime Tech Services",
+                        tagline: "Repairs • Software • Support",
+                        fontWeight: 800,
+                        exportSize: 800
+                      };
+                    }
+                    return prev;
+                  });
+                }}
+              >
+                <option value="app">App</option>
+                <option value="full">Full</option>
+                <option value="business">Business Logo</option>
+              </select>
+            </label>
+
+            <label className="text-sm">
+              <div className="mb-1 opacity-80">Icon</div>
+              <select
+                className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 outline-none"
+                value={cfg.icon}
+                onChange={(e) => setCfg((p) => ({ ...p, icon: e.target.value as "chip" }))}
+              >
+                <option value="chip">Chip</option>
+              </select>
+            </label>
+
             <label className="text-sm">
               <div className="mb-1 opacity-80">Brand name</div>
               <input
-                className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 outline-none"
+                className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 outline-none disabled:opacity-50"
                 value={cfg.brandName}
                 onChange={(e) => setCfg((p) => ({ ...p, brandName: e.target.value }))}
               />
@@ -273,25 +248,10 @@ export default function AdminLogoMakerClient() {
             <label className="text-sm">
               <div className="mb-1 opacity-80">Tagline</div>
               <input
-                className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 outline-none"
+                className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 outline-none disabled:opacity-50"
                 value={cfg.tagline}
                 onChange={(e) => setCfg((p) => ({ ...p, tagline: e.target.value }))}
               />
-            </label>
-
-            <label className="text-sm">
-              <div className="mb-1 opacity-80">Icon</div>
-              <select
-                className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 outline-none"
-                value={cfg.icon}
-                onChange={(e) => setCfg((p) => ({ ...p, icon: e.target.value as any }))}
-              >
-                <option value="chip">Chip</option>
-                <option value="bolt">Bolt</option>
-                <option value="wrench">Wrench</option>
-                <option value="shield">Shield</option>
-                <option value="globe">Globe</option>
-              </select>
             </label>
 
             <label className="text-sm">
@@ -299,22 +259,16 @@ export default function AdminLogoMakerClient() {
               <select
                 className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 outline-none"
                 value={cfg.shape}
-                onChange={(e) => setCfg((p) => ({ ...p, shape: e.target.value as any }))}
+                onChange={(e) => setCfg((p) => ({ ...p, shape: e.target.value as "rounded" }))}
               >
                 <option value="rounded">Rounded</option>
-                <option value="square">Square</option>
-                <option value="pill">Pill</option>
               </select>
             </label>
 
             <label className="text-sm">
               <div className="mb-1 opacity-80">Primary</div>
               <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={cfg.primary}
-                  onChange={(e) => setCfg((p) => ({ ...p, primary: e.target.value }))}
-                />
+                <input type="color" value={cfg.primary} onChange={(e) => setCfg((p) => ({ ...p, primary: e.target.value }))} />
                 <input
                   className="flex-1 rounded-xl border border-white/10 bg-black/20 px-3 py-2 outline-none"
                   value={cfg.primary}
@@ -326,11 +280,7 @@ export default function AdminLogoMakerClient() {
             <label className="text-sm">
               <div className="mb-1 opacity-80">Accent</div>
               <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={cfg.accent}
-                  onChange={(e) => setCfg((p) => ({ ...p, accent: e.target.value }))}
-                />
+                <input type="color" value={cfg.accent} onChange={(e) => setCfg((p) => ({ ...p, accent: e.target.value }))} />
                 <input
                   className="flex-1 rounded-xl border border-white/10 bg-black/20 px-3 py-2 outline-none"
                   value={cfg.accent}
@@ -344,7 +294,7 @@ export default function AdminLogoMakerClient() {
               <div className="flex items-center gap-3">
                 <input
                   type="color"
-                  value={cfg.background}
+                  value={asColorInputValue(cfg.background, "#f5f7fb")}
                   onChange={(e) => setCfg((p) => ({ ...p, background: e.target.value }))}
                 />
                 <input
@@ -360,12 +310,14 @@ export default function AdminLogoMakerClient() {
               <select
                 className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 outline-none"
                 value={cfg.fontWeight}
-                onChange={(e) => setCfg((p) => ({ ...p, fontWeight: Number(e.target.value) as any }))}
+                onChange={(e) => setCfg((p) => ({ ...p, fontWeight: Number(e.target.value) as LogoConfig["fontWeight"] }))}
               >
+                <option value={400}>400</option>
                 <option value={500}>500</option>
                 <option value={600}>600</option>
                 <option value={700}>700</option>
                 <option value={800}>800</option>
+                <option value={900}>900</option>
               </select>
             </label>
 
@@ -374,69 +326,53 @@ export default function AdminLogoMakerClient() {
               <input
                 type="number"
                 min={128}
-                max={2048}
+                max={2400}
                 className="w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 outline-none"
                 value={cfg.exportSize}
                 onChange={(e) => setCfg((p) => ({ ...p, exportSize: Number(e.target.value) }))}
               />
-              <div className="text-xs opacity-70 mt-1">PNG export uses this size. Save-as-app-logo uses 512px.</div>
+              {logoType === "business" ? (
+                <div className="mt-1 text-xs opacity-70">Business export ratio is fixed at 800:250.</div>
+              ) : null}
             </label>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-3 items-center">
-            <button
-              className="rounded-xl px-4 py-2 bg-white/10 hover:bg-white/15 border border-white/10"
-              onClick={onExportSvg}
-              type="button"
-            >
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 hover:bg-white/15" onClick={onExportSvg} type="button">
               Export SVG
             </button>
-            <button
-              className="rounded-xl px-4 py-2 bg-white/10 hover:bg-white/15 border border-white/10"
-              onClick={onExportPng}
-              type="button"
-            >
-              Export PNG ({exportSize}px)
+            <button className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 hover:bg-white/15" onClick={onExportPng} type="button">
+              Export PNG ({exportWidth}x{exportHeight})
             </button>
             <button
-              className="rounded-xl px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white"
+              className="rounded-xl bg-blue-600 px-4 py-2 text-white hover:bg-blue-500 disabled:opacity-60"
               onClick={onSaveAsAppLogo}
               type="button"
               disabled={status.kind === "saving"}
             >
               {status.kind === "saving" ? "Saving..." : "Save as App Logo"}
             </button>
-
-            {status.kind !== "idle" && (
+            {status.kind !== "idle" ? (
               <div
                 className={
-                  "text-sm px-3 py-2 rounded-xl border " +
+                  "rounded-xl border px-3 py-2 text-sm " +
                   (status.kind === "ok"
                     ? "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
                     : status.kind === "saving"
                       ? "border-blue-400/30 bg-blue-500/10 text-blue-100"
-                    : "border-red-400/30 bg-red-500/10 text-red-200")
+                      : "border-red-400/30 bg-red-500/10 text-red-200")
                 }
               >
                 {status.msg}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
-        {/* Preview */}
         <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-          <div className="text-sm font-semibold mb-3">Preview</div>
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-4 flex items-center justify-center">
-            <img
-              src={previewSrc}
-              alt="Logo preview"
-              className="w-full max-w-[320px] h-auto"
-            />
-          </div>
-
-          <div className="mt-4 text-xs opacity-75">
-            If the controls do not respond, the page is not hydrated. This file is forced as a client component.
+          <div className="mb-3 text-sm font-semibold">Preview</div>
+          <div className="flex items-center justify-center rounded-2xl border border-white/10 bg-black/30 p-4">
+            <img src={previewSrc} alt="Logo preview" className="h-auto w-full max-w-[320px]" />
           </div>
         </div>
       </div>

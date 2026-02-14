@@ -1,11 +1,10 @@
 {
   "brandName": "Prime Tech Services",
-  "tagline": "Reliable Technology. Delivered Professionally.",
-  "primary": "#111827",
-  "accent": "#FACC15",
-  "icon": "bolt",
-  "shape": "square",
-  "fontWeight": 800,
-  "exportSize": 512,
-  "updatedAt": "2026-02-13T23:42:50.863Z"
+  "tagline": "Repairs • Software • Support",
+  "colors": {
+    "primary": "#2563EB",
+    "accent": "#F97316",
+    "background": "transparent"
+  },
+  "updatedAt": "2026-02-14T23:41:17.833Z"
 }
