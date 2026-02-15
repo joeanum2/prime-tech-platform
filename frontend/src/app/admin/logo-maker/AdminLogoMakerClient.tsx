@@ -101,7 +101,13 @@ function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 500);
 }
 
+function truncateText(value: string, max = 300) {
+  return value.length <= max ? value : `${value.slice(0, max)}...`;
+}
+
 export default function AdminLogoMakerClient() {
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:4000";
+  const adminToken = process.env.NEXT_PUBLIC_ADMIN_TOKEN ?? "";
   const [logoType, setLogoType] = useState<LogoType>(A5_PRIME_TECH_BUSINESS_STANDARD.input.logoType);
   const [cfg, setCfg] = useState<LogoConfig>(A5_PRIME_TECH_BUSINESS_STANDARD.input);
   const [presetId, setPresetId] = useState<"A4" | "A5">("A5");
@@ -142,12 +148,18 @@ export default function AdminLogoMakerClient() {
       const saveDims = logoType === "business" ? { width: 800, height: 250 } : { width: 512, height: 512 };
       const pngBlob = await svgToPngBlob(svg, saveDims.width, saveDims.height, cfg.background);
       const pngBase64 = await blobToBase64DataUrl(pngBlob);
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (adminToken) {
+        headers.Authorization = `Bearer ${adminToken}`;
+        headers["x-admin-token"] = adminToken;
+      }
 
-      const res = await fetch("/api/admin/logo", {
+      const res = await fetch(`${apiBase}/api/admin/branding/logo`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           pngBase64,
+          svgText: svg,
           meta: {
             brandName: cfg.brandName,
             tagline: cfg.tagline,
@@ -163,11 +175,18 @@ export default function AdminLogoMakerClient() {
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(`Save failed (${res.status}): ${text}`);
+        throw new Error(
+          `Save failed\napiBase: ${apiBase}\nstatus: ${res.status}\nresponse: ${truncateText(text || "(empty)")}`
+        );
       }
       setStatus({ kind: "ok", msg: "Saved." });
     } catch (e: any) {
-      setStatus({ kind: "err", msg: e?.message ?? "Save failed." });
+      setStatus({
+        kind: "err",
+        msg:
+          e?.message ??
+          `Save failed\napiBase: ${apiBase}\nstatus: n/a\nresponse: request failed`
+      });
     }
   }
 
@@ -363,7 +382,7 @@ export default function AdminLogoMakerClient() {
                       : "border-red-400/30 bg-red-500/10 text-red-200")
                 }
               >
-                {status.msg}
+                <span className="whitespace-pre-wrap">{status.msg}</span>
               </div>
             ) : null}
           </div>

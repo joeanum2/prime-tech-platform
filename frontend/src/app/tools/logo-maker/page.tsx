@@ -19,6 +19,19 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+async function blobToBase64DataUrl(blob: Blob) {
+  return await new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(new Error("Failed to convert blob to base64"));
+    r.readAsDataURL(blob);
+  });
+}
+
+function truncateText(value: string, max = 300) {
+  return value.length <= max ? value : `${value.slice(0, max)}...`;
+}
+
 function hexToRgb(hex: string) {
   const h = hex.replace("#", "").trim();
   const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
@@ -239,6 +252,8 @@ function renderLogo(
 }
 
 export default function LogoMakerPage() {
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:4000";
+  const adminToken = process.env.NEXT_PUBLIC_ADMIN_TOKEN ?? "";
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [brandText, setBrandText] = useState("Prime Tech Services");
@@ -247,6 +262,7 @@ export default function LogoMakerPage() {
   const [accent, setAccent] = useState("#22c55e"); // green
   const [icon, setIcon] = useState<IconType>("chip");
   const [rounded, setRounded] = useState(28);
+  const [status, setStatus] = useState<{ kind: "idle" | "saving" | "ok" | "err"; msg?: string }>({ kind: "idle" });
 
   const size = useMemo(() => ({ w: 1200, h: 400 }), []);
 
@@ -273,6 +289,50 @@ export default function LogoMakerPage() {
     downloadBlob(blob, "prime-tech-logo.png");
   }
 
+  async function onSaveAsAppLogo() {
+    setStatus({ kind: "saving", msg: "Saving..." });
+    try {
+      const c = canvasRef.current;
+      if (!c) throw new Error("Canvas is not ready");
+      const blob: Blob | null = await new Promise((resolve) => c.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("Unable to render PNG");
+      const pngBase64 = await blobToBase64DataUrl(blob);
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (adminToken) {
+        headers.Authorization = `Bearer ${adminToken}`;
+        headers["x-admin-token"] = adminToken;
+      }
+      const res = await fetch(`${apiBase}/api/admin/branding/logo`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          pngBase64,
+          meta: {
+            brandName: brandText,
+            tagline,
+            colors: { background: bg, accent },
+            icon,
+            rounded
+          }
+        })
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(
+          `Save failed\napiBase: ${apiBase}\nstatus: ${res.status}\nresponse: ${truncateText(text || "(empty)")}`
+        );
+      }
+      setStatus({ kind: "ok", msg: "Saved as app logo." });
+    } catch (e: any) {
+      setStatus({
+        kind: "err",
+        msg:
+          e?.message ??
+          `Save failed\napiBase: ${apiBase}\nstatus: n/a\nresponse: request failed`
+      });
+    }
+  }
+
   return (
     <main className="min-h-screen px-6 py-10">
       <div className="mx-auto w-full max-w-5xl">
@@ -285,12 +345,21 @@ export default function LogoMakerPage() {
           <section className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-medium text-neutral-800">Preview</div>
-              <button
-                onClick={exportPng}
-                className="rounded-xl border border-neutral-200 bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
-              >
-                Export PNG
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={exportPng}
+                  className="rounded-xl border border-neutral-200 bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+                >
+                  Export PNG
+                </button>
+                <button
+                  onClick={onSaveAsAppLogo}
+                  disabled={status.kind === "saving"}
+                  className="rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-50 disabled:opacity-60"
+                >
+                  {status.kind === "saving" ? "Saving..." : "Save as App Logo"}
+                </button>
+              </div>
             </div>
 
             <div className="mt-4 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
@@ -298,10 +367,23 @@ export default function LogoMakerPage() {
             </div>
 
             <div className="mt-3 text-xs text-neutral-500">
-              Tip: PNG export downloads to your computer. To make the app use it, place the final file at{" "}
-              <span className="font-mono">frontend/public/branding/logo.png</span> or update your app to reference{" "}
-              <span className="font-mono">/branding/logo-generated.png</span>.
+              Tip: Save as App Logo writes to backend branding files and serves the result from{" "}
+              <span className="font-mono">http://localhost:4000/branding/logo.png</span>.
             </div>
+            {status.kind !== "idle" ? (
+              <div
+                className={[
+                  "mt-3 rounded-xl border px-3 py-2 text-sm whitespace-pre-wrap",
+                  status.kind === "ok"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    : status.kind === "saving"
+                      ? "border-blue-200 bg-blue-50 text-blue-800"
+                      : "border-red-200 bg-red-50 text-red-800"
+                ].join(" ")}
+              >
+                {status.msg}
+              </div>
+            ) : null}
           </section>
 
           <aside className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
@@ -375,9 +457,9 @@ export default function LogoMakerPage() {
             <div className="mt-6 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-600">
               <div className="font-medium text-neutral-800">Repo save</div>
               <div className="mt-1">
-                This page also saves a starter output location for you:{" "}
-                <span className="font-mono">/branding/logo-generated.png</span> (public folder). To permanently use it as your site logo, copy/rename it to{" "}
-                <span className="font-mono">/branding/logo.png</span> and update your header to reference that path.
+                Save action persists files to <span className="font-mono">backend/public/branding/</span> as{" "}
+                <span className="font-mono">logo.png</span>, optional <span className="font-mono">logo.svg</span>, and{" "}
+                <span className="font-mono">app-logo.json</span>.
               </div>
             </div>
           </aside>
