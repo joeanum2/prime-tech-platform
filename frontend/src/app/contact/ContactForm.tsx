@@ -24,7 +24,7 @@ export function ContactForm() {
 
   useEffect(() => {
     if (!successMessage) return;
-    const timeout = window.setTimeout(() => setSuccessMessage(null), 10000);
+    const timeout = window.setTimeout(() => setSuccessMessage(null), 12000);
     return () => window.clearTimeout(timeout);
   }, [successMessage]);
 
@@ -67,7 +67,7 @@ export function ContactForm() {
 
       if (res?.ok) {
         setSuccessMessage(
-          `Message received successfully.
+          `Message received.
 We will respond within 24 hours.
 A confirmation email has been sent to your inbox.`
         );

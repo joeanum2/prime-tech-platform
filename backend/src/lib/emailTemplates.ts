@@ -47,16 +47,16 @@ function escapeHtml(s: string) {
 
 function wrapEmail(title: string, body: string) {
   return (
-    `<div style="font-family: Arial, sans-serif; max-width: 650px; margin: auto; padding: 25px; border: 1px solid #eee; border-radius: 10px; background: #ffffff;">` +
+    `<div style="font-family: Arial, sans-serif; max-width: 650px; margin: auto; padding: 25px; border: 1px solid #eee; border-radius: 12px; background: #ffffff;">` +
     `<div style="text-align:center; margin-bottom:20px;">` +
-    `<img src="${BRAND.logoUrl}" alt="${BRAND.name}" style="max-width:180px; height:auto;" />` +
+    `<img src="${BRAND.logoUrl}" alt="${BRAND.name}" style="max-width:170px; height:auto;" />` +
     `</div>` +
     `<h2 style="color:#0f172a; text-align:center;">${title}</h2>` +
     `<div style="font-size:15px; color:#333; line-height:1.6;">${body}</div>` +
     `<hr style="margin:25px 0;" />` +
     `<p style="font-size:13px; color:#666; text-align:center;">` +
     `&#169; ${new Date().getFullYear()} ${BRAND.name}<br/>` +
-    `Professional Repairs | Software | Support` +
+    `Reliable Repairs • Software • Support` +
     `</p>` +
     `</div>`
   );
@@ -78,7 +78,7 @@ export function bookingCustomerEmail(input: {
     : "";
 
   return wrapEmail(
-    "Booking Confirmation",
+    "Booking Received",
     `<p>Hello <strong>${escapeHtml(input.fullName)}</strong>,</p>` +
       `<p>Your booking request has been received successfully.</p>` +
       `<p><strong>Reference:</strong> ${escapeHtml(input.bkgRef)}<br/>` +
@@ -87,6 +87,7 @@ export function bookingCustomerEmail(input: {
       `${notesBlock}` +
       `${trackBlock}` +
       `<p>We will confirm availability within <strong>24 hours</strong>.</p>` +
+      `<p>A confirmation email has been sent to your inbox.</p>` +
       `<p>Thank you for choosing Prime Tech Services.</p>`
   );
 }
@@ -101,6 +102,7 @@ export function contactCustomerEmail(input: ContactCustomerEmailInput) {
       `${escapeHtml(input.message).replace(/\n/g, "<br/>")}` +
       `</p>` +
       `<p>Our team will respond within <strong>24 hours</strong>.</p>` +
+      `<p>A confirmation email has been sent to your inbox.</p>` +
       `<p>Kind regards,<br/>Prime Tech Services Support Team</p>`
   );
 }
@@ -174,4 +176,3 @@ export function renderBookingAdminEmail(booking: BookingEmailInput): EmailConten
 
   return { subject, text, html };
 }
-

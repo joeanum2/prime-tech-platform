@@ -40,6 +40,10 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: ButtonSize;
 };
 
-export function Button({ variant = "primary", size = "md", className, ...props }: ButtonProps) {
-  return <button className={buttonClasses({ variant, size, className })} {...props} />;
+export function Button({ variant = "primary", size = "md", className, children, ...props }: ButtonProps) {
+  return (
+    <button className={buttonClasses({ variant, size, className })} {...props}>
+      {props.disabled && props.type === "submit" ? "Sending..." : children}
+    </button>
+  );
 }

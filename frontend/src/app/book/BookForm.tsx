@@ -53,7 +53,7 @@ export function BookForm() {
 
   useEffect(() => {
     if (!successMessage) return;
-    const timeout = window.setTimeout(() => setSuccessMessage(null), 10000);
+    const timeout = window.setTimeout(() => setSuccessMessage(null), 12000);
     return () => window.clearTimeout(timeout);
   }, [successMessage]);
 
