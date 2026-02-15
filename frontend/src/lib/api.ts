@@ -1,3 +1,5 @@
+import { getAdminToken } from "@/lib/adminAuth";
+
 export type CanonicalError = {
   error: {
     code: string;
@@ -97,10 +99,16 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   const base = getApiBase();
   const credentials = init.credentials ?? "include";
   const { controller, timer } = withTimeout(init.signal ?? undefined, DEFAULT_TIMEOUT_MS);
+  const token = getAdminToken();
+  const headers = new Headers(init.headers ?? undefined);
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
 
   try {
     const res = await fetch(`${base}${path}`, {
       ...init,
+      headers,
       credentials,
       signal: controller.signal,
       cache: "no-store"
@@ -117,10 +125,16 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 export async function clientFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const base = getApiBase();
   const { controller, timer } = withTimeout(init.signal ?? undefined, DEFAULT_TIMEOUT_MS);
+  const token = getAdminToken();
+  const headers = new Headers(init.headers ?? undefined);
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
 
   try {
     const res = await fetch(`${base}${path}`, {
       ...init,
+      headers,
       credentials: "include",
       signal: controller.signal
     });
