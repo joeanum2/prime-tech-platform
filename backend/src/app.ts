@@ -24,6 +24,7 @@ import { webhooksRoutes } from "./routes/webhooks.routes";
 import { contactRoutes } from "./routes/contact.routes";
 import { adminTestEmail } from "./controllers/admin.email.controller";
 import { trackBooking } from "./controllers/bookings.controller";
+import { adminListContactMessages } from "./controllers/contact.controller";
 
 export function buildApp() {
   const env = loadEnv();
@@ -61,6 +62,14 @@ export function buildApp() {
   app.get("/api/track", trackBooking);
   app.use("/api/services", servicesRoutes);
   app.use("/api/contact", contactRoutes);
+  app.get("/api/admin/contact-messages", (req, res, next) => {
+    const adminToken = process.env.ADMIN_TOKEN;
+    if (!adminToken) return res.status(500).json({ error: "ADMIN_TOKEN not configured" });
+    const auth = req.header("authorization") || "";
+    const bearer = auth.startsWith("Bearer ") ? auth.slice("Bearer ".length) : "";
+    if (bearer === adminToken) return next();
+    return res.status(401).json({ error: "Not authenticated" });
+  }, adminListContactMessages);
   app.post("/api/admin/test-email", (req, res, next) => {
     const adminToken = process.env.ADMIN_TOKEN;
     if (!adminToken) return res.status(500).json({ error: "ADMIN_TOKEN not configured" });

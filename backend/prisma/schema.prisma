@@ -28,6 +28,12 @@ enum BookingStatus {
   CANCELLED
 }
 
+enum ContactMessageStatus {
+  RECEIVED
+  EMAILED
+  EMAIL_FAILED
+}
+
 enum LicenceStatus {
   ACTIVE
   REVOKED
@@ -314,5 +320,19 @@ model Booking {
 
   @@unique([tenantId, bkgRef])
   @@index([tenantId])
+}
+
+model ContactMessage {
+  id         String               @id @default(cuid())
+  fullName   String
+  email      String
+  subject    String
+  message    String
+  status     ContactMessageStatus @default(RECEIVED)
+  emailError String?
+  createdAt  DateTime             @default(now())
+
+  @@index([createdAt])
+  @@index([status])
 }
 

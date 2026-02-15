@@ -62,6 +62,8 @@ export function ContactForm() {
       if (res?.ok) {
         setSuccessMessage("Message sent. We will get back to you shortly.");
         setValues({ fullName: "", email: "", subject: "", message: "" });
+        setFieldErrors({});
+        setServerError(null);
       } else {
         setSuccessMessage("Message sent.");
       }
