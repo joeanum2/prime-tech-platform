@@ -86,6 +86,13 @@ export async function sendMail(args: SendMailArgs): Promise<MailSendResult> {
       html: args.html
     });
 
+    console.info("[MAIL] sent", {
+      accepted: (info as any)?.accepted,
+      rejected: (info as any)?.rejected,
+      response: (info as any)?.response,
+      messageId: (info as any)?.messageId
+    });
+
     const result = sanitizeInfo(info);
     console.log(
       `[SMTP SENT] messageId=${result.messageId ?? ""} response=${result.response ?? ""} accepted=${(result.accepted ?? []).join(",")} rejected=${(result.rejected ?? []).join(",")}`

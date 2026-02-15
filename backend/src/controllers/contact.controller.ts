@@ -31,8 +31,18 @@ export async function submitContact(req: Request, res: Response) {
     throw new AppError("VALIDATION_ERROR", "Invalid contact data", 400, { fieldErrors });
   }
 
-  const notifyTo = (env.CONTACT_TO_EMAIL || "bookings@joetechx.co.uk").trim();
-  const fromAddress = (env.CONTACT_FROM_EMAIL || notifyTo).trim();
+  const notifyTo = (
+    process.env.CONTACT_TO ||
+    process.env.BOOKINGS_TO ||
+    process.env.CONTACT_TO_EMAIL ||
+    "bookings@joetechx.co.uk"
+  ).trim();
+  const fromAddress = (
+    process.env.MAIL_FROM ||
+    process.env.SMTP_USER ||
+    process.env.CONTACT_FROM_EMAIL ||
+    notifyTo
+  ).trim();
 
   const { fullName, email, subject, message } = parsed.data;
   const saved = await prisma.contactMessage.create({
