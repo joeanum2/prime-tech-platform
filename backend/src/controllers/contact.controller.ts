@@ -3,6 +3,10 @@ import { z } from "zod";
 import { AppError } from "../domain/errors";
 import { sendMail } from "../lib/mailer";
 import { prisma } from "../db/prisma";
+import { loadEnv } from "../config/env";
+import { contactCustomerEmail } from "../lib/emailTemplates";
+
+const env = loadEnv();
 
 const contactSchema = z.object({
   fullName: z.string().min(2, "Full name is required"),
@@ -27,8 +31,8 @@ export async function submitContact(req: Request, res: Response) {
     throw new AppError("VALIDATION_ERROR", "Invalid contact data", 400, { fieldErrors });
   }
 
-  const notifyTo = (process.env.CONTACT_TO_EMAIL || "bookings@joetechx.co.uk").trim();
-  const fromAddress = (process.env.CONTACT_FROM_EMAIL || "bookings@joetechx.co.uk").trim();
+  const notifyTo = (env.CONTACT_TO_EMAIL || "bookings@joetechx.co.uk").trim();
+  const fromAddress = (env.CONTACT_FROM_EMAIL || notifyTo).trim();
 
   const { fullName, email, subject, message } = parsed.data;
   const saved = await prisma.contactMessage.create({
@@ -41,7 +45,7 @@ export async function submitContact(req: Request, res: Response) {
     }
   });
 
-  const text =
+  const adminText =
     `New contact message\n\n` +
     `Message ID: ${saved.id}\n` +
     `Full name: ${fullName}\n` +
@@ -49,8 +53,8 @@ export async function submitContact(req: Request, res: Response) {
     `Subject: ${subject}\n\n` +
     `${message}\n`;
 
-  const htmlMessage = escapeHtml(message).replace(/\n/g, "<br>");
-  const html =
+  const adminHtmlMessage = escapeHtml(message).replace(/\n/g, "<br>");
+  const adminHtml =
     `<div style="font-family: Arial, sans-serif; line-height: 1.5;">` +
     `<p><strong>New contact message</strong></p>` +
     `<p>` +
@@ -58,7 +62,7 @@ export async function submitContact(req: Request, res: Response) {
     `<strong>Email:</strong> ${escapeHtml(email)}<br>` +
     `<strong>Subject:</strong> ${escapeHtml(subject)}` +
     `</p>` +
-    `<p>${htmlMessage}</p>` +
+    `<p>${adminHtmlMessage}</p>` +
     `</div>`;
 
   const missingSmtp = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS"].filter(
@@ -74,29 +78,70 @@ export async function submitContact(req: Request, res: Response) {
     return res.status(200).json({ ok: true, id: failed.id, status: failed.status });
   }
 
+  let adminSent = false;
+  let confirmationSent = false;
+  const sendErrors: string[] = [];
+
   try {
     await sendMail({
       to: notifyTo,
       from: fromAddress,
+      replyTo: email,
       subject: `[Contact] ${subject}`,
-      text,
-      html
+      text: adminText,
+      html: adminHtml
     });
-
-    const emailed = await prisma.contactMessage.update({
-      where: { id: saved.id },
-      data: { status: "EMAILED", emailError: null }
-    });
-    return res.status(200).json({ ok: true, id: emailed.id, status: emailed.status });
+    adminSent = true;
   } catch (err) {
     const messageText =
       err instanceof Error ? err.message : typeof err === "string" ? err : "SMTP send failed";
-    const failed = await prisma.contactMessage.update({
-      where: { id: saved.id },
-      data: { status: "EMAIL_FAILED", emailError: messageText.slice(0, 1000) }
-    });
-    return res.status(200).json({ ok: true, id: failed.id, status: failed.status });
+    sendErrors.push(`admin: ${messageText}`);
   }
+
+  const confirmationText =
+    `Hello ${fullName},\n\n` +
+    `Thank you for contacting Prime Tech Services. We have received your message and will respond within 24 hours.\n\n` +
+    `Summary:\n` +
+    `Subject: ${subject}\n` +
+    `Message: ${message}\n\n` +
+    `If you need to add more details, reply to this email.\n\n` +
+    `Kind regards,\n` +
+    `Prime Tech Services\n`;
+  const confirmationHtml = contactCustomerEmail({ fullName, subject, message });
+
+  try {
+    await sendMail({
+      to: email,
+      from: fromAddress,
+      replyTo: notifyTo,
+      subject: env.CONTACT_CONFIRM_SUBJECT,
+      text: confirmationText,
+      html: confirmationHtml
+    });
+    confirmationSent = true;
+  } catch (err) {
+    const messageText =
+      err instanceof Error ? err.message : typeof err === "string" ? err : "SMTP send failed";
+    sendErrors.push(`confirmation: ${messageText}`);
+  }
+
+  const status = adminSent && confirmationSent
+    ? "EMAILED"
+    : adminSent || confirmationSent
+      ? "EMAIL_PARTIAL"
+      : "EMAIL_FAILED";
+  const emailError = sendErrors.length > 0 ? sendErrors.join(" | ").slice(0, 1000) : null;
+
+  const updated = await prisma.contactMessage.update({
+    where: { id: saved.id },
+    data: { status, emailError }
+  });
+  return res.status(200).json({
+    ok: true,
+    id: updated.id,
+    status: updated.status,
+    confirmationSent
+  });
 }
 
 const listSchema = z.object({

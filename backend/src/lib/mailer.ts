@@ -4,6 +4,7 @@ import { getMailConfig } from "../config/mail";
 export type SendMailArgs = {
   to: string;
   from?: string;
+  replyTo?: string;
   subject: string;
   text: string;
   html?: string;
@@ -79,6 +80,7 @@ export async function sendMail(args: SendMailArgs): Promise<MailSendResult> {
     const info = await mailer.sendMail({
       from: args.from ?? cfg.from,
       to: args.to,
+      replyTo: args.replyTo,
       subject: args.subject,
       text: args.text,
       html: args.html

@@ -31,6 +31,7 @@ enum BookingStatus {
 enum ContactMessageStatus {
   RECEIVED
   EMAILED
+  EMAIL_PARTIAL
   EMAIL_FAILED
 }
 

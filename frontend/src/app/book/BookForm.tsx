@@ -51,6 +51,12 @@ export function BookForm() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (!successMessage) return;
+    const timeout = window.setTimeout(() => setSuccessMessage(null), 10000);
+    return () => window.clearTimeout(timeout);
+  }, [successMessage]);
+
   function updateField(name: keyof BookingFormValues, value: string) {
     setValues((prev) => ({ ...prev, [name]: value }));
     setFieldErrors((prev) => ({ ...prev, [name]: "" }));
@@ -111,14 +117,13 @@ export function BookForm() {
         }
       );
 
-      const ref =
-        res?.booking?.bkgRef
-          ? `Your reference is ${res.booking.bkgRef}.`
-          : res?.bkgRef
-            ? `Your reference is ${res.bkgRef}.`
-            : "";
-
-      setSuccessMessage(`Booking request received. ${ref}`.trim());
+      const ref = res?.booking?.bkgRef ?? res?.bkgRef;
+      const referenceLine = ref ? `Booking received. Reference: ${ref}.` : "Booking received.";
+      setSuccessMessage(
+        `${referenceLine}
+We will confirm availability within 24 hours.
+A confirmation email has been sent to your inbox.`
+      );
 
       // ✅ Reset form after success (keep service preset)
       setValues({ ...initialValues, serviceSlug: servicePreset });
@@ -198,10 +203,25 @@ export function BookForm() {
 
       {serverError ? <ErrorPresenter error={serverError} /> : null}
       {fallbackError ? <Alert variant="error">{fallbackError}</Alert> : null}
-      {successMessage ? <Alert variant="success">{successMessage}</Alert> : null}
+      {successMessage ? (
+        <Alert variant="success" className="font-medium text-base whitespace-pre-line">
+          {successMessage}
+        </Alert>
+      ) : null}
 
-      <Button type="submit" disabled={submitting}>
-        {submitting ? "Submitting…" : "Submit booking"}
+      <Button
+        type="submit"
+        disabled={submitting}
+        className="w-full flex items-center justify-center gap-2"
+      >
+        {submitting ? (
+          <>
+            <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            Sending...
+          </>
+        ) : (
+          "Submit booking"
+        )}
       </Button>
     </form>
   );

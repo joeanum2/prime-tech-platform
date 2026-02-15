@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +21,12 @@ export function ContactForm() {
   const [serverError, setServerError] = useState<CanonicalError | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!successMessage) return;
+    const timeout = window.setTimeout(() => setSuccessMessage(null), 10000);
+    return () => window.clearTimeout(timeout);
+  }, [successMessage]);
 
   function updateField(name: keyof ContactInput, value: string) {
     setValues((prev) => ({ ...prev, [name]: value }));
@@ -60,7 +66,11 @@ export function ContactForm() {
       });
 
       if (res?.ok) {
-        setSuccessMessage("Message sent. We will get back to you shortly.");
+        setSuccessMessage(
+          `Message received successfully.
+We will respond within 24 hours.
+A confirmation email has been sent to your inbox.`
+        );
         setValues({ fullName: "", email: "", subject: "", message: "" });
         setFieldErrors({});
         setServerError(null);
@@ -120,10 +130,25 @@ export function ContactForm() {
       />
 
       {serverError ? <ErrorPresenter error={serverError} /> : null}
-      {successMessage ? <Alert variant="success">{successMessage}</Alert> : null}
+      {successMessage ? (
+        <Alert variant="success" className="font-medium text-base whitespace-pre-line">
+          {successMessage}
+        </Alert>
+      ) : null}
 
-      <Button type="submit" disabled={submitting}>
-        {submitting ? "Sending…" : "Send message"}
+      <Button
+        type="submit"
+        disabled={submitting}
+        className="w-full flex items-center justify-center gap-2"
+      >
+        {submitting ? (
+          <>
+            <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            Sending...
+          </>
+        ) : (
+          "Send message"
+        )}
       </Button>
     </form>
   );
