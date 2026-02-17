@@ -1,6 +1,7 @@
 import "@/styles/globals.css";
 import type { Metadata } from "next";
 import { Source_Sans_3, Source_Serif_4 } from "next/font/google";
+import { AppBackground } from "@/components/layout/AppBackground";
 import { SiteHeaderServer } from "@/components/layout/SiteHeaderServer";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import type { ReactNode } from "react";
@@ -29,9 +30,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${sans.variable} ${display.variable}`}>
       <body className="font-sans">
-        <SiteHeaderServer />
-        <main>{children}</main>
-        <SiteFooter />
+        <AppBackground />
+        <div className="relative z-10 flex min-h-screen flex-col">
+          <SiteHeaderServer />
+          <main className="flex-1">{children}</main>
+          <SiteFooter />
+        </div>
       </body>
     </html>
   );

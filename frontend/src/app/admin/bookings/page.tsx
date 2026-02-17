@@ -17,7 +17,9 @@ export default async function AdminBookingsPage() {
   if (!user || user.role !== "ADMIN") {
     return (
       <LayoutShell title="Admin bookings" description="Restricted area.">
-        <Alert variant="error">Administrator access required.</Alert>
+        <div className="mx-auto w-full max-w-4xl rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+          <Alert variant="error">Administrator access required.</Alert>
+        </div>
       </LayoutShell>
     );
   }
@@ -26,13 +28,17 @@ export default async function AdminBookingsPage() {
     const data = await apiFetch<{ bookings: AdminBooking[] }>("/api/admin/bookings");
     return (
       <LayoutShell title="Bookings" description="Filter, review, and update bookings.">
-        <AdminBookingsClient items={data.bookings ?? []} />
+        <div className="mx-auto w-full max-w-4xl rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+          <AdminBookingsClient items={data.bookings ?? []} />
+        </div>
       </LayoutShell>
     );
   } catch (error) {
     return (
       <LayoutShell title="Admin bookings" description="Bookings overview.">
-        <ErrorPresenter error={getCanonicalError(error)} />
+        <div className="mx-auto w-full max-w-4xl rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+          <ErrorPresenter error={getCanonicalError(error)} />
+        </div>
       </LayoutShell>
     );
   }

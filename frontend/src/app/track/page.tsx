@@ -78,64 +78,65 @@ export default function TrackPage() {
       : errCode === "FORBIDDEN"
         ? "The booking reference and email do not match."
         : errMessage;
-  return (
-    <LayoutShell>
-      <div className="mx-auto w-full max-w-2xl p-4">
-        <h1 className="text-2xl font-semibold">Track booking</h1>
 
+  return (
+    <LayoutShell title="Track booking" description="Use your booking reference and email to view the latest status.">
+      <div className="mx-auto w-full max-w-3xl space-y-4">
         {!booking || !email ? (
-          <div className="mt-4">
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
             <TrackForm />
           </div>
         ) : loading ? (
-          <div className="mt-4 rounded-lg border p-4">
-            <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700 align-middle" />
-            <span className="ml-2 align-middle">Loading booking…</span>
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+            <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700 align-middle" />
+            <span className="ml-2 align-middle text-sm text-slate-700">Loading booking…</span>
           </div>
         ) : err ? (
-          <div className="mt-4 rounded-lg border p-4">
-            <div className="font-medium">Unable to track booking</div>
-            <div className="mt-1 text-sm text-gray-600">{friendlyError}</div>
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+            <div className="font-medium text-text">Unable to track booking</div>
+            <div className="mt-1 text-sm text-muted">{friendlyError}</div>
           </div>
         ) : data ? (
-          <div className="mt-4 rounded-lg border p-4">
-            <div className="text-sm text-gray-600">Booking reference</div>
-            <div className="text-lg font-semibold">{data.bookingRef}</div>
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+            <div className="text-sm text-muted">Booking reference</div>
+            <div className="text-xl font-semibold text-text">{data.bookingRef}</div>
 
-            <div className="mt-4 grid gap-3">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div>
-                <div className="text-sm text-gray-600">Status</div>
-                <div className="text-xl font-bold">{data.status}</div>
+                <div className="text-sm text-muted">Status</div>
+                <div className="text-lg font-bold text-text">{data.status}</div>
               </div>
 
               <div>
-                <div className="text-sm text-gray-600">Service</div>
-                <div className="font-medium">{data.serviceName ?? "—"}</div>
+                <div className="text-sm text-muted">Service</div>
+                <div className="font-medium text-text">{data.serviceName ?? "—"}</div>
               </div>
 
               <div>
-                <div className="text-sm text-gray-600">Preferred date/time</div>
-                <div className="font-medium">{fmt(data.preferredDate)}</div>
+                <div className="text-sm text-muted">Preferred date/time</div>
+                <div className="font-medium text-text">{fmt(data.preferredDate)}</div>
               </div>
 
               <div>
-                <div className="text-sm text-gray-600">Booked by</div>
-                <div className="font-medium">{data.fullName}</div>
+                <div className="text-sm text-muted">Booked by</div>
+                <div className="font-medium text-text">{data.fullName}</div>
               </div>
 
               <div>
-                <div className="text-sm text-gray-600">Email</div>
-                <div className="font-medium">{data.email}</div>
+                <div className="text-sm text-muted">Email</div>
+                <div className="font-medium text-text">{data.email}</div>
               </div>
 
               <div>
-                <div className="text-sm text-gray-600">Created</div>
-                <div className="font-medium">{fmt(data.createdAt)}</div>
+                <div className="text-sm text-muted">Created</div>
+                <div className="font-medium text-text">{fmt(data.createdAt)}</div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="mt-4 rounded-lg border p-4">Booking not found.</div>
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+            Booking not found.
+          </div>
         )}
       </div>
     </LayoutShell>
