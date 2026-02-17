@@ -1,8 +1,12 @@
 export const ADMIN_TOKEN_KEY = "primetech_admin_token";
 
 export function getAdminToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(ADMIN_TOKEN_KEY);
+  const envToken = process.env.NEXT_PUBLIC_ADMIN_TOKEN?.trim() ?? "";
+  if (typeof window === "undefined") {
+    return envToken || null;
+  }
+  const localToken = window.localStorage.getItem(ADMIN_TOKEN_KEY)?.trim() ?? "";
+  return localToken || envToken || null;
 }
 
 export function setAdminToken(token: string) {

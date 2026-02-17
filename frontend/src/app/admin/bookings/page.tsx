@@ -24,8 +24,25 @@ export default async function AdminBookingsPage() {
     );
   }
 
+  const adminToken = process.env.NEXT_PUBLIC_ADMIN_TOKEN?.trim();
+  if (!adminToken) {
+    return (
+      <LayoutShell title="Admin bookings" description="Bookings overview.">
+        <div className="mx-auto w-full max-w-4xl rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+          <Alert variant="error">
+            Admin token missing. Set <code>NEXT_PUBLIC_ADMIN_TOKEN</code> to load bookings.
+          </Alert>
+        </div>
+      </LayoutShell>
+    );
+  }
+
   try {
-    const data = await apiFetch<{ bookings: AdminBooking[] }>("/api/admin/bookings");
+    const data = await apiFetch<{ bookings: AdminBooking[] }>("/api/admin/bookings", {
+      headers: {
+        Authorization: `Bearer ${adminToken}`
+      }
+    });
     return (
       <LayoutShell title="Bookings" description="Filter, review, and update bookings.">
         <div className="mx-auto w-full max-w-4xl rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">

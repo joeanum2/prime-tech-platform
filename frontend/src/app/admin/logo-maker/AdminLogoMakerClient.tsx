@@ -151,7 +151,6 @@ export default function AdminLogoMakerClient() {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (adminToken) {
         headers.Authorization = `Bearer ${adminToken}`;
-        headers["x-admin-token"] = adminToken;
       }
 
       const res = await fetch(`${apiBase}/api/admin/branding/logo`, {
