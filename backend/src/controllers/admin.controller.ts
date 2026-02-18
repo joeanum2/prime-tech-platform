@@ -27,11 +27,6 @@ function toAdminBooking(row: {
 }
 
 const listBookingsQuerySchema = z.object({
-  status: z.string().optional(),
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20)
 });
@@ -50,20 +45,25 @@ export async function adminListBookings(req: Request, res: Response) {
     });
   }
 
-  const { status, date, page, pageSize } = parsedQuery.data;
-  const normalizedStatus = status?.trim().toUpperCase() ?? "";
+  const { page, pageSize } = parsedQuery.data;
+  const statusStr = String(req.query.status ?? "").trim();
+  const dateStr = String(req.query.date ?? "").trim();
 
   let whereClause = Prisma.sql`"tenantId" = CAST(${tenantId} AS uuid)`;
-  if (normalizedStatus && normalizedStatus !== "ALL") {
+  if (statusStr && statusStr !== "ALL") {
+    const normalizedStatus = statusStr.toUpperCase();
     if (!(normalizedStatus in BookingStatus)) {
       return res.status(400).json({ error: "Invalid status filter" });
     }
     whereClause = Prisma.sql`${whereClause} AND "status" = ${normalizedStatus as BookingStatus}`;
   }
 
-  if (date) {
-    const start = new Date(`${date}T00:00:00.000Z`);
-    const end = new Date(`${date}T23:59:59.999Z`);
+  if (dateStr) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return res.status(400).json({ error: "date must be YYYY-MM-DD" });
+    }
+    const start = new Date(`${dateStr}T00:00:00.000Z`);
+    const end = new Date(`${dateStr}T23:59:59.999Z`);
     whereClause = Prisma.sql`${whereClause} AND (("preferredAt" >= ${start} AND "preferredAt" <= ${end}) OR ("preferredAt" IS NULL AND "createdAt" >= ${start} AND "createdAt" <= ${end}))`;
   }
 

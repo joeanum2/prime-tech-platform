@@ -73,7 +73,8 @@ export function AdminBookingsClient() {
     try {
       const params = new URLSearchParams();
       if (filterStatus !== "ALL") params.set("status", filterStatus);
-      if (filterDate) params.set("date", filterDate);
+      const date = filterDate.trim();
+      if (date) params.set("date", date);
       params.set("page", String(page));
       params.set("pageSize", String(pageSize));
 
