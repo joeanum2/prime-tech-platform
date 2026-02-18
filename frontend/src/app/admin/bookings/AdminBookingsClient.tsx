@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
-import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Alert } from "@/components/ui/Alert";
 import { ErrorPresenter } from "@/components/error/ErrorPresenter";
@@ -41,17 +40,6 @@ type AdminBookingsResponse = {
   totalPages: number;
 };
 
-function normalizeDateQuery(value: string): string {
-  const v = value.trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
-
-  const slashMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v);
-  if (!slashMatch) return "";
-
-  const [, dd, mm, yyyy] = slashMatch;
-  return `${yyyy}-${mm}-${dd}`;
-}
-
 function normalizeBookings(items: AdminBooking[]): NormalizedAdminBooking[] {
   return items
     .map((item) => ({
@@ -85,8 +73,7 @@ export function AdminBookingsClient() {
     try {
       const params = new URLSearchParams();
       if (filterStatus !== "ALL") params.set("status", filterStatus);
-      const normalizedDate = normalizeDateQuery(filterDate);
-      if (normalizedDate) params.set("date", normalizedDate);
+      if (filterDate) params.set("date", filterDate);
       params.set("page", String(page));
       params.set("pageSize", String(pageSize));
 
@@ -105,7 +92,7 @@ export function AdminBookingsClient() {
 
   useEffect(() => {
     setPage(1);
-  }, [filterStatus, filterDate, pageSize]);
+  }, [filterStatus, pageSize]);
 
   useEffect(() => {
     void loadBookings();
@@ -168,13 +155,22 @@ export function AdminBookingsClient() {
             </option>
           ))}
         </Select>
-        <Input
-          label="Filter by date"
-          name="date"
+        <div>
+          <label className="text-sm font-medium text-text" htmlFor="admin-bookings-date-filter">
+            Filter by date
+          </label>
+          <input
+            id="admin-bookings-date-filter"
+            name="date"
           type="date"
           value={filterDate}
-          onChange={(event) => setFilterDate(event.target.value)}
-        />
+            onChange={(e) => {
+              setPage(1);
+              setFilterDate(e.target.value);
+            }}
+            className="mt-1 w-full rounded-2xl border border-border bg-surface px-3 py-2 text-sm text-text shadow-sm focus:border-primary focus:outline-none"
+          />
+        </div>
         <Select
           label="Rows per page"
           name="pageSize"
