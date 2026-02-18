@@ -26,93 +26,86 @@ function toAdminBooking(row: {
   };
 }
 
-const listBookingsQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20)
-});
-
 export async function adminListBookings(req: Request, res: Response) {
   try {
-    console.log("[admin/bookings]", {
-      status: req.query.status,
-      date: req.query.date,
-      page: req.query.page,
-      pageSize: req.query.pageSize
-    });
-
     const tenantId = (req as any).tenantId as string | undefined;
     if (!tenantId) {
       return res.status(403).json({ error: "Tenant resolution required" });
     }
 
-    const parsedQuery = listBookingsQuerySchema.safeParse(req.query);
-    if (!parsedQuery.success) {
-      return res.status(400).json({
-        error: "Invalid query parameters",
-        details: parsedQuery.error.flatten().fieldErrors
-      });
-    }
+    const statusRaw = String(req.query.status ?? "ALL").trim().toUpperCase();
+    const dateRaw = String(req.query.date ?? "").trim();
 
-    const { page, pageSize } = parsedQuery.data;
-    const statusStr = String(req.query.status ?? "").trim();
-    const dateStr = String(req.query.date ?? "").trim();
-
-    let whereClause = Prisma.sql`"tenantId" = CAST(${tenantId} AS uuid)`;
-    if (statusStr && statusStr !== "ALL") {
-      const normalizedStatus = statusStr.toUpperCase();
-      if (!(normalizedStatus in BookingStatus)) {
-        return res.status(400).json({ error: "Invalid status filter" });
-      }
-      whereClause = Prisma.sql`${whereClause} AND "status" = ${normalizedStatus as BookingStatus}`;
-    }
-
-    if (dateStr) {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-        return res.status(400).json({ error: "date must be YYYY-MM-DD" });
-      }
-      const start = new Date(`${dateStr}T00:00:00.000Z`);
-      const end = new Date(`${dateStr}T23:59:59.999Z`);
-      whereClause = Prisma.sql`${whereClause} AND (("preferredAt" >= ${start} AND "preferredAt" <= ${end}) OR ("preferredAt" IS NULL AND "createdAt" >= ${start} AND "createdAt" <= ${end}))`;
-    }
-
-    const whereSql = Prisma.sql`WHERE ${whereClause}`;
-    const countRows = await prisma.$queryRaw<Array<{ total: bigint }>>(
-      Prisma.sql`SELECT COUNT(*)::bigint AS total FROM "Booking" ${whereSql}`
-    );
-    const total = Number(countRows[0]?.total ?? 0);
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-    const safePage = Math.min(page, totalPages);
-    const skip = (safePage - 1) * pageSize;
-
-    const rows = await prisma.$queryRaw<
-      Array<{
-        bkgRef: string;
-        fullName: string;
-        email: string;
-        serviceNameSnapshot: string;
-        status: BookingStatus;
-        preferredAt: Date;
-        createdAt: Date;
-        notes: string | null;
-      }>
-    >(
-      Prisma.sql`SELECT "bkgRef", "fullName", email, "serviceNameSnapshot", status, "preferredAt", "createdAt", notes
-                 FROM "Booking"
-                 ${whereSql}
-                 ORDER BY "createdAt" DESC
-                 OFFSET ${skip}
-                 LIMIT ${pageSize}`
+    const page = Math.max(parseInt(String(req.query.page ?? "1"), 10), 1);
+    const pageSize = Math.min(
+      Math.max(parseInt(String(req.query.pageSize ?? "20"), 10), 1),
+      50
     );
 
-    return res.status(200).json({
+    const where: any = { tenantId };
+
+    // Status filter
+    if (statusRaw !== "ALL") {
+      if (!Object.values(BookingStatus).includes(statusRaw as BookingStatus)) {
+        return res.status(400).json({
+          error: "Invalid status filter",
+          allowed: Object.values(BookingStatus)
+        });
+      }
+      where.status = statusRaw as BookingStatus;
+    }
+
+    // Date filter
+    if (dateRaw !== "") {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) {
+        return res.status(400).json({ error: "Invalid date format" });
+      }
+
+      const start = new Date(`${dateRaw}T00:00:00.000Z`);
+      const end = new Date(`${dateRaw}T23:59:59.999Z`);
+
+      if (Number.isNaN(start.getTime())) {
+        return res.status(400).json({ error: "Invalid date format" });
+      }
+
+      where.OR = [
+        { preferredAt: { gte: start, lte: end } },
+        { createdAt: { gte: start, lte: end } }
+      ];
+    }
+
+    const total = await prisma.booking.count({ where });
+
+    const rows = await prisma.booking.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      select: {
+        bkgRef: true,
+        fullName: true,
+        email: true,
+        serviceNameSnapshot: true,
+        status: true,
+        preferredAt: true,
+        createdAt: true,
+        notes: true
+      }
+    });
+
+    return res.json({
       bookings: rows.map(toAdminBooking),
-      page: safePage,
+      page,
       pageSize,
       total,
-      totalPages
+      totalPages: Math.ceil(total / pageSize)
     });
-  } catch {
-    return res.status(500).json({ error: "Internal server error" });
+  } catch (err) {
+    console.error("ADMIN BOOKINGS ERROR:", err);
+    return res.status(500).json({
+      error: "Internal server error",
+      details: String(err)
+    });
   }
 }
 
