@@ -3,6 +3,25 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "../db/prisma";
 
+function toAdminBooking(row: {
+  bkgRef: string;
+  fullName: string;
+  email: string;
+  serviceNameSnapshot: string;
+  status: string;
+  createdAt: Date;
+}) {
+  return {
+    bookingRef: row.bkgRef,
+    bkgRef: row.bkgRef,
+    fullName: row.fullName,
+    email: row.email,
+    serviceName: row.serviceNameSnapshot,
+    status: row.status,
+    createdAt: row.createdAt.toISOString()
+  };
+}
+
 export async function adminListBookings(req: Request, res: Response) {
   const tenantId = (req as any).tenantId as string | undefined;
   if (!tenantId) {
@@ -23,16 +42,43 @@ export async function adminListBookings(req: Request, res: Response) {
   });
 
   return res.status(200).json({
-    bookings: rows.map((row) => ({
-      bookingRef: row.bkgRef,
-      bkgRef: row.bkgRef,
-      fullName: row.fullName,
-      email: row.email,
-      serviceName: row.serviceNameSnapshot,
-      status: row.status,
-      createdAt: row.createdAt.toISOString()
-    }))
+    bookings: rows.map(toAdminBooking)
   });
+}
+
+export async function adminGetBooking(req: Request, res: Response) {
+  const tenantId = (req as any).tenantId as string | undefined;
+  if (!tenantId) {
+    return res.status(403).json({ error: "Tenant resolution required" });
+  }
+
+  const bookingRef = String(req.params.bookingRef ?? req.params.bkgRef ?? "").trim();
+  if (!bookingRef) {
+    return res.status(400).json({ error: "bookingRef is required" });
+  }
+
+  const booking = await prisma.booking.findUnique({
+    where: {
+      tenantId_bkgRef: {
+        tenantId,
+        bkgRef: bookingRef
+      }
+    },
+    select: {
+      bkgRef: true,
+      fullName: true,
+      email: true,
+      serviceNameSnapshot: true,
+      status: true,
+      createdAt: true
+    }
+  });
+
+  if (!booking) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  return res.status(200).json({ booking: toAdminBooking(booking) });
 }
 
 const patchBookingSchema = z.object({
@@ -45,9 +91,9 @@ export async function adminPatchBooking(req: Request, res: Response) {
     return res.status(403).json({ error: "Tenant resolution required" });
   }
 
-  const bookingRef = String(req.params.bookingRef ?? "").trim();
-  if (!bookingRef) {
-    return res.status(400).json({ error: "bookingRef is required" });
+  const bkgRef = String(req.params.bkgRef ?? req.params.bookingRef ?? "").trim();
+  if (!bkgRef) {
+    return res.status(400).json({ error: "bkgRef is required" });
   }
 
   const parsed = patchBookingSchema.safeParse(req.body);
@@ -63,7 +109,7 @@ export async function adminPatchBooking(req: Request, res: Response) {
       where: {
         tenantId_bkgRef: {
           tenantId,
-          bkgRef: bookingRef
+          bkgRef
         }
       },
       data: { status: parsed.data.status },
@@ -78,15 +124,7 @@ export async function adminPatchBooking(req: Request, res: Response) {
     });
 
     return res.status(200).json({
-      booking: {
-        bookingRef: updated.bkgRef,
-        bkgRef: updated.bkgRef,
-        fullName: updated.fullName,
-        email: updated.email,
-        serviceName: updated.serviceNameSnapshot,
-        status: updated.status,
-        createdAt: updated.createdAt.toISOString()
-      }
+      booking: toAdminBooking(updated)
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {

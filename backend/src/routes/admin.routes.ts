@@ -21,6 +21,8 @@ function requireAdminToken(req: Request, res: Response, next: NextFunction) {
 
 adminRoutes.post("/branding/logo", requireAdminToken, adminSaveBrandingLogo);
 adminRoutes.get("/bookings", requireAdminToken, c.adminListBookings);
+adminRoutes.get("/bookings/:bookingRef", requireAdminToken, c.adminGetBooking);
+adminRoutes.patch("/bookings/:bkgRef/status", requireAdminToken, c.adminPatchBooking);
 adminRoutes.patch("/bookings/:bookingRef/status", requireAdminToken, c.adminPatchBooking);
 
 adminRoutes.use(requireAuth);
