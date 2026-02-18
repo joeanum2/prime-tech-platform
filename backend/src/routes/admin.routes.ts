@@ -21,11 +21,11 @@ function requireAdminToken(req: Request, res: Response, next: NextFunction) {
 
 adminRoutes.post("/branding/logo", requireAdminToken, adminSaveBrandingLogo);
 adminRoutes.get("/bookings", requireAdminToken, c.adminListBookings);
+adminRoutes.patch("/bookings/:bookingRef/status", requireAdminToken, c.adminPatchBooking);
 
 adminRoutes.use(requireAuth);
 adminRoutes.use(requireRole("ADMIN"));
 
 adminRoutes.get("/health", adminHealth);
 adminRoutes.get("/stats", adminStats);
-adminRoutes.patch("/bookings/:bkgRef", c.adminPatchBooking);
 adminRoutes.post("/test-email", requireAdminToken, adminTestEmail);
