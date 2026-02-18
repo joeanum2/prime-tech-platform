@@ -24,6 +24,8 @@ export type AdminBooking = {
   serviceNameSnapshot?: string;
   preferredAt?: string;
   createdAt?: string;
+  notes?: string | null;
+  message?: string | null;
 };
 
 type NormalizedAdminBooking = AdminBooking & {
@@ -38,6 +40,17 @@ type AdminBookingsResponse = {
   total: number;
   totalPages: number;
 };
+
+function normalizeDateQuery(value: string): string {
+  const v = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+
+  const slashMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v);
+  if (!slashMatch) return "";
+
+  const [, dd, mm, yyyy] = slashMatch;
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 function normalizeBookings(items: AdminBooking[]): NormalizedAdminBooking[] {
   return items
@@ -58,6 +71,7 @@ export function AdminBookingsClient() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
+  const [detailsBooking, setDetailsBooking] = useState<NormalizedAdminBooking | null>(null);
   const [nextStatus, setNextStatus] = useState<AdminBookingStatus | "">("");
   const [loading, setLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -71,7 +85,8 @@ export function AdminBookingsClient() {
     try {
       const params = new URLSearchParams();
       if (filterStatus !== "ALL") params.set("status", filterStatus);
-      if (filterDate) params.set("date", filterDate);
+      const normalizedDate = normalizeDateQuery(filterDate);
+      if (normalizedDate) params.set("date", normalizedDate);
       params.set("page", String(page));
       params.set("pageSize", String(pageSize));
 
@@ -100,6 +115,10 @@ export function AdminBookingsClient() {
     () => (selectedRef ? bookings.find((booking) => booking.bookingRef === selectedRef) ?? null : null),
     [bookings, selectedRef]
   );
+
+  function getNotes(booking: AdminBooking): string {
+    return String(booking.notes ?? booking.message ?? "").trim();
+  }
 
   async function handleUpdate() {
     if (!selectedRef || !nextStatus) return;
@@ -205,9 +224,29 @@ export function AdminBookingsClient() {
                 <p className="text-sm text-muted">{booking.bookingRef}</p>
                 <p className="text-lg font-semibold text-text">{booking.fullName ?? "Customer"}</p>
                 <p className="text-sm text-muted">{booking.serviceName || "Service"}</p>
+                <div className="mt-1 text-sm text-muted">
+                  <span className="font-medium">Notes:</span>{" "}
+                  {getNotes(booking) ? (
+                    <span
+                      style={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden"
+                      }}
+                    >
+                      {getNotes(booking)}
+                    </span>
+                  ) : (
+                    <span>—</span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <p className="text-xs text-muted">{booking.status ?? ""}</p>
+                <Button type="button" variant="ghost" onClick={() => setDetailsBooking(booking)}>
+                  View details
+                </Button>
                 <Button
                   type="button"
                   variant="secondary"
@@ -252,6 +291,46 @@ export function AdminBookingsClient() {
                 Confirm update
               </Button>
             </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal open={Boolean(detailsBooking)} onClose={() => setDetailsBooking(null)} title="Booking details">
+        {detailsBooking ? (
+          <div className="space-y-3">
+            <p>
+              <span className="font-medium text-text">Reference:</span> {detailsBooking.bookingRef}
+            </p>
+            <p>
+              <span className="font-medium text-text">Customer:</span> {detailsBooking.fullName ?? "-"}
+            </p>
+            <p>
+              <span className="font-medium text-text">Email:</span> {detailsBooking.email ?? "-"}
+            </p>
+            <p>
+              <span className="font-medium text-text">Service:</span> {detailsBooking.serviceName || "-"}
+            </p>
+            <div>
+              <p className="font-medium text-text">Customer notes</p>
+              {getNotes(detailsBooking) ? (
+                <div className="mt-1 whitespace-pre-line rounded-lg border bg-surface p-3 text-sm text-muted">
+                  {getNotes(detailsBooking)}
+                </div>
+              ) : (
+                <p className="mt-1 text-sm text-muted">No notes provided.</p>
+              )}
+            </div>
+            <p>
+              <span className="font-medium text-text">Preferred:</span>{" "}
+              {detailsBooking.preferredAt ? new Date(detailsBooking.preferredAt).toLocaleString() : "-"}
+            </p>
+            <p>
+              <span className="font-medium text-text">Created:</span>{" "}
+              {detailsBooking.createdAt ? new Date(detailsBooking.createdAt).toLocaleString() : "-"}
+            </p>
+            <p>
+              <span className="font-medium text-text">Status:</span> {detailsBooking.status ?? "-"}
+            </p>
           </div>
         ) : null}
       </Modal>

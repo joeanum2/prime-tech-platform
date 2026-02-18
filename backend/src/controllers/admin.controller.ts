@@ -11,6 +11,7 @@ function toAdminBooking(row: {
   status: BookingStatus;
   preferredAt: Date;
   createdAt: Date;
+  notes: string | null;
 }) {
   return {
     bookingRef: row.bkgRef,
@@ -20,7 +21,8 @@ function toAdminBooking(row: {
     serviceName: row.serviceNameSnapshot,
     status: row.status,
     preferredAt: row.preferredAt.toISOString(),
-    createdAt: row.createdAt.toISOString()
+    createdAt: row.createdAt.toISOString(),
+    notes: row.notes
   };
 }
 
@@ -51,41 +53,48 @@ export async function adminListBookings(req: Request, res: Response) {
   const { status, date, page, pageSize } = parsedQuery.data;
   const normalizedStatus = status?.trim().toUpperCase() ?? "";
 
-  const where: Prisma.BookingWhereInput = { tenantId };
+  let whereClause = Prisma.sql`"tenantId" = CAST(${tenantId} AS uuid)`;
   if (normalizedStatus && normalizedStatus !== "ALL") {
     if (!(normalizedStatus in BookingStatus)) {
       return res.status(400).json({ error: "Invalid status filter" });
     }
-    where.status = normalizedStatus as BookingStatus;
+    whereClause = Prisma.sql`${whereClause} AND "status" = ${normalizedStatus as BookingStatus}`;
   }
 
   if (date) {
     const start = new Date(`${date}T00:00:00.000Z`);
-    const end = new Date(start);
-    end.setUTCDate(end.getUTCDate() + 1);
-    where.preferredAt = { gte: start, lt: end };
+    const end = new Date(`${date}T23:59:59.999Z`);
+    whereClause = Prisma.sql`${whereClause} AND (("preferredAt" >= ${start} AND "preferredAt" <= ${end}) OR ("preferredAt" IS NULL AND "createdAt" >= ${start} AND "createdAt" <= ${end}))`;
   }
 
-  const total = await prisma.booking.count({ where });
+  const whereSql = Prisma.sql`WHERE ${whereClause}`;
+  const countRows = await prisma.$queryRaw<Array<{ total: bigint }>>(
+    Prisma.sql`SELECT COUNT(*)::bigint AS total FROM "Booking" ${whereSql}`
+  );
+  const total = Number(countRows[0]?.total ?? 0);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(page, totalPages);
   const skip = (safePage - 1) * pageSize;
 
-  const rows = await prisma.booking.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    skip,
-    take: pageSize,
-    select: {
-      bkgRef: true,
-      fullName: true,
-      email: true,
-      serviceNameSnapshot: true,
-      status: true,
-      preferredAt: true,
-      createdAt: true
-    }
-  });
+  const rows = await prisma.$queryRaw<
+    Array<{
+      bkgRef: string;
+      fullName: string;
+      email: string;
+      serviceNameSnapshot: string;
+      status: BookingStatus;
+      preferredAt: Date;
+      createdAt: Date;
+      notes: string | null;
+    }>
+  >(
+    Prisma.sql`SELECT "bkgRef", "fullName", email, "serviceNameSnapshot", status, "preferredAt", "createdAt", notes
+               FROM "Booking"
+               ${whereSql}
+               ORDER BY "createdAt" DESC
+               OFFSET ${skip}
+               LIMIT ${pageSize}`
+  );
 
   return res.status(200).json({
     bookings: rows.map(toAdminBooking),
@@ -121,7 +130,8 @@ export async function adminGetBooking(req: Request, res: Response) {
       serviceNameSnapshot: true,
       status: true,
       preferredAt: true,
-      createdAt: true
+      createdAt: true,
+      notes: true
     }
   });
 
@@ -171,7 +181,8 @@ export async function adminPatchBooking(req: Request, res: Response) {
         serviceNameSnapshot: true,
         status: true,
         preferredAt: true,
-        createdAt: true
+        createdAt: true,
+        notes: true
       }
     });
 
