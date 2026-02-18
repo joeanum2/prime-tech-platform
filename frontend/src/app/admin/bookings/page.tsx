@@ -30,7 +30,11 @@ export default async function AdminBookingsPage() {
       <LayoutShell title="Admin bookings" description="Bookings overview.">
         <div className="mx-auto w-full max-w-4xl rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
           <Alert variant="error">
-            Admin token missing. Set <code>NEXT_PUBLIC_ADMIN_TOKEN</code> to load bookings.
+            Admin token missing. Add this to <code>frontend/.env.local</code>:
+            <br />
+            <code>NEXT_PUBLIC_API_BASE=http://localhost:4000</code>
+            <br />
+            <code>NEXT_PUBLIC_ADMIN_TOKEN=REPLACE_WITH_BACKEND_ADMIN_TOKEN</code>
           </Alert>
         </div>
       </LayoutShell>

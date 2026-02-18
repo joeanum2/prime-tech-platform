@@ -16,6 +16,9 @@ export type ApiResult<T> =
   | { ok: false; error: CanonicalError; status: number };
 
 const DEFAULT_TIMEOUT_MS = 10000;
+const ADMIN_API_PATH = /^\/api\/admin(?:\/|$)/;
+const ADMIN_TOKEN_MISSING_MESSAGE =
+  "Missing admin token for admin API calls. Add the following to frontend/.env.local: NEXT_PUBLIC_API_BASE=http://localhost:4000 and NEXT_PUBLIC_ADMIN_TOKEN=REPLACE_WITH_BACKEND_ADMIN_TOKEN.";
 
 function getApiBase() {
   const base = process.env.NEXT_PUBLIC_API_BASE;
@@ -95,6 +98,18 @@ function buildNetworkError(error: unknown) {
   });
 }
 
+function assertAdminAuth(path: string, headers: Headers) {
+  if (!ADMIN_API_PATH.test(path)) return;
+  if (headers.has("Authorization")) return;
+
+  throw new ApiError(400, {
+    error: {
+      code: "ADMIN_TOKEN_MISSING",
+      message: ADMIN_TOKEN_MISSING_MESSAGE
+    }
+  });
+}
+
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const base = getApiBase();
   const credentials = init.credentials ?? "include";
@@ -104,6 +119,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
+  assertAdminAuth(path, headers);
 
   try {
     const res = await fetch(`${base}${path}`, {
@@ -130,6 +146,7 @@ export async function clientFetch<T>(path: string, init: RequestInit = {}): Prom
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
+  assertAdminAuth(path, headers);
 
   try {
     const res = await fetch(`${base}${path}`, {
