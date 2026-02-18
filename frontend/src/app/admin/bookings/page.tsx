@@ -15,7 +15,7 @@ export default async function AdminBookingsPage() {
   if (!user || user.role !== "ADMIN") {
     return (
       <LayoutShell title="Admin bookings" description="Restricted area.">
-        <div className="mx-auto w-full max-w-4xl rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+        <div className="mx-auto w-full max-w-4xl p-5 pt-card sm:p-7">
           <Alert variant="error">Administrator access required.</Alert>
         </div>
       </LayoutShell>
@@ -26,7 +26,7 @@ export default async function AdminBookingsPage() {
   if (!adminToken) {
     return (
       <LayoutShell title="Admin bookings" description="Bookings overview.">
-        <div className="mx-auto w-full max-w-4xl rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+        <div className="mx-auto w-full max-w-4xl p-5 pt-card sm:p-7">
           <Alert variant="error">
             Admin token missing. Add this to <code>frontend/.env.local</code>:
             <br />
@@ -41,7 +41,7 @@ export default async function AdminBookingsPage() {
 
   return (
     <LayoutShell title="Bookings" description="Filter, review, and update bookings.">
-      <div className="mx-auto w-full max-w-4xl rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+      <div className="mx-auto w-full max-w-4xl p-5 pt-card sm:p-7">
         <AdminBookingsClient />
       </div>
     </LayoutShell>

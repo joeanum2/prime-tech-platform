@@ -18,7 +18,7 @@ export default function HomePage() {
       description="Clear, reliable support for deployments, licensing, and customer operations."
     >
       <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="card space-y-4 p-6">
+        <div className="card pt-card-neon space-y-4 p-6">
           <h2 className="text-2xl font-semibold text-text">Release with calm, not chaos.</h2>
           <p className="text-sm text-muted">
             Prime Tech Services helps teams plan releases, validate licensing, and keep

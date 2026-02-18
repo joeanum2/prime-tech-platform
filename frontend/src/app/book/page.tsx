@@ -14,7 +14,7 @@ export default function BookPage() {
       title="Book a service"
       description="Tell us what you need and we will confirm availability."
     >
-      <div className="mx-auto w-full max-w-3xl rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+      <div className="mx-auto w-full max-w-3xl p-5 pt-card sm:p-7">
         <BookForm />
       </div>
     </LayoutShell>

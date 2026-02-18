@@ -212,7 +212,7 @@ A confirmation email has been sent to your inbox.`
       <Button
         type="submit"
         disabled={submitting}
-        className="w-full flex items-center justify-center gap-2"
+        className="pt-btn-neon w-full flex items-center justify-center gap-2"
       >
         {submitting ? (
           <>

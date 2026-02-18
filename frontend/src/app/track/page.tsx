@@ -83,21 +83,21 @@ export default function TrackPage() {
     <LayoutShell title="Track booking" description="Use your booking reference and email to view the latest status.">
       <div className="mx-auto w-full max-w-3xl space-y-4">
         {!booking || !email ? (
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+          <div className="p-5 pt-card sm:p-7">
             <TrackForm />
           </div>
         ) : loading ? (
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+          <div className="p-5 pt-card sm:p-7">
             <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700 align-middle" />
             <span className="ml-2 align-middle text-sm text-slate-700">Loading booking…</span>
           </div>
         ) : err ? (
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+          <div className="p-5 pt-card sm:p-7">
             <div className="font-medium text-text">Unable to track booking</div>
             <div className="mt-1 text-sm text-muted">{friendlyError}</div>
           </div>
         ) : data ? (
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+          <div className="p-5 pt-card sm:p-7">
             <div className="text-sm text-muted">Booking reference</div>
             <div className="text-xl font-semibold text-text">{data.bookingRef}</div>
 
@@ -134,7 +134,7 @@ export default function TrackPage() {
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-card sm:p-7">
+          <div className="p-5 pt-card sm:p-7">
             Booking not found.
           </div>
         )}

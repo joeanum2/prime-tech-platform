@@ -30,12 +30,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${sans.variable} ${display.variable}`}>
       <body className="font-sans">
-        <AppBackground />
-        <div className="relative z-10 flex min-h-screen flex-col">
-          <SiteHeaderServer />
-          <main className="flex-1">{children}</main>
-          <SiteFooter />
-        </div>
+        <AppBackground>
+          <div className="relative z-10 flex min-h-screen flex-col">
+            <SiteHeaderServer />
+            <main className="flex-1">{children}</main>
+            <SiteFooter />
+          </div>
+        </AppBackground>
       </body>
     </html>
   );
