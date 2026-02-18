@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import { Alert } from "@/components/ui/Alert";
-import { ErrorPresenter } from "@/components/error/ErrorPresenter";
-import { CanonicalError, clientFetch, getCanonicalError } from "@/lib/api";
+import { clientFetch, getCanonicalError } from "@/lib/api";
+import { getAdminToken, setAdminToken } from "@/lib/adminAuth";
 
 export type AdminBookingStatus = "NEW" | "IN_PROGRESS" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
 
@@ -64,12 +64,34 @@ export function AdminBookingsClient() {
   const [loading, setLoading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [updatingRef, setUpdatingRef] = useState<string | null>(null);
-  const [error, setError] = useState<CanonicalError | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [tokenMissing, setTokenMissing] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const legacyToken = window.localStorage.getItem("ADMIN_TOKEN")?.trim() ?? "";
+    if (legacyToken && !getAdminToken()) {
+      setAdminToken(legacyToken);
+    }
+    setTokenMissing(!getAdminToken());
+  }, []);
+
+  function toUiErrorMessage(err: unknown): string {
+    const ce = getCanonicalError(err);
+    if (ce?.error?.message) return ce.error.message;
+    if (err && typeof err === "object" && "status" in err) {
+      const status = String((err as { status?: number }).status ?? "");
+      if (status) return `HTTP ${status}: Request failed`;
+    }
+    if (err instanceof Error) return err.message;
+    return "Request failed";
+  }
 
   const loadBookings = useCallback(async () => {
+    if (tokenMissing) return;
     setLoading(true);
-    setError(null);
+    setErrorMessage(null);
     try {
       const params = new URLSearchParams();
       if (filterStatus !== "ALL") params.set("status", filterStatus);
@@ -85,11 +107,11 @@ export function AdminBookingsClient() {
       setTotal(data.total ?? 0);
       setTotalPages(data.totalPages ?? 1);
     } catch (err) {
-      setError(getCanonicalError(err));
+      setErrorMessage(toUiErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, [filterDate, filterStatus, page, pageSize]);
+  }, [filterDate, filterStatus, page, pageSize, tokenMissing]);
 
   useEffect(() => {
     setPage(1);
@@ -113,7 +135,7 @@ export function AdminBookingsClient() {
 
     const previousStatus = selectedBooking?.status;
 
-    setError(null);
+    setErrorMessage(null);
     setMessage(null);
     setIsUpdating(true);
     setUpdatingRef(selectedRef);
@@ -131,7 +153,7 @@ export function AdminBookingsClient() {
       void loadBookings();
     } catch (err) {
       setBookings((prev) => prev.map((b) => (b.bookingRef === selectedRef ? { ...b, status: previousStatus } : b)));
-      setError(getCanonicalError(err));
+      setErrorMessage(toUiErrorMessage(err));
     } finally {
       setIsUpdating(false);
       setUpdatingRef(null);
@@ -209,7 +231,10 @@ export function AdminBookingsClient() {
       </div>
 
       {message ? <Alert variant="success">{message}</Alert> : null}
-      {error ? <ErrorPresenter error={error} /> : null}
+      {tokenMissing ? (
+        <Alert variant="error">Admin token missing. Please set ADMIN_TOKEN in the admin session.</Alert>
+      ) : null}
+      {errorMessage ? <Alert variant="error">{errorMessage}</Alert> : null}
 
       {bookings.length === 0 && !loading ? (
         <Alert variant="info">No bookings match the selected filters.</Alert>
