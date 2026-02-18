@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
@@ -9,10 +9,13 @@ import { Alert } from "@/components/ui/Alert";
 import { ErrorPresenter } from "@/components/error/ErrorPresenter";
 import { clientFetch, getCanonicalError, CanonicalError } from "@/lib/api";
 
+export type AdminBookingStatus = "NEW" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+type AdminBookingKnownStatus = AdminBookingStatus | "IN_PROGRESS";
+
 export type AdminBooking = {
   bookingRef?: string;
   bkgRef?: string;
-  status?: string;
+  status?: AdminBookingKnownStatus;
   fullName?: string;
   email?: string;
   serviceName?: string;
@@ -20,30 +23,53 @@ export type AdminBooking = {
   preferredAt?: string;
 };
 
-const statuses = ["NEW", "CONFIRMED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
+type NormalizedAdminBooking = AdminBooking & {
+  bookingRef: string;
+  serviceName: string;
+};
+
+const statuses: AdminBookingStatus[] = ["NEW", "CONFIRMED", "COMPLETED", "CANCELLED"];
+
+function normalizeBookings(items: AdminBooking[]): NormalizedAdminBooking[] {
+  return items
+    .map((item) => ({
+      ...item,
+      bookingRef: (item.bookingRef ?? item.bkgRef ?? "").trim(),
+      serviceName: item.serviceName ?? item.serviceNameSnapshot ?? ""
+    }))
+    .filter((item): item is NormalizedAdminBooking => item.bookingRef.length > 0);
+}
+
+function isUpdatableStatus(value: string): value is AdminBookingStatus {
+  return statuses.includes(value as AdminBookingStatus);
+}
 
 export function AdminBookingsClient({ items }: { items: AdminBooking[] }) {
-  const normalizedItems = useMemo(
-    () =>
-      items
-        .map((item) => ({
-          ...item,
-          bookingRef: (item.bookingRef ?? item.bkgRef ?? "").trim(),
-          serviceName: item.serviceName ?? item.serviceNameSnapshot
-        }))
-        .filter((item) => item.bookingRef.length > 0),
-    [items]
-  );
-
+  const [bookings, setBookings] = useState<NormalizedAdminBooking[]>(() => normalizeBookings(items));
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDate, setFilterDate] = useState("");
-  const [selected, setSelected] = useState<AdminBooking | null>(null);
-  const [nextStatus, setNextStatus] = useState("");
+  const [selected, setSelected] = useState<NormalizedAdminBooking | null>(null);
+  const [nextStatus, setNextStatus] = useState<AdminBookingStatus | "">("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updatingRef, setUpdatingRef] = useState<string | null>(null);
   const [error, setError] = useState<CanonicalError | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    setBookings(normalizeBookings(items));
+  }, [items]);
+
+  async function refreshList() {
+    try {
+      const data = await clientFetch<{ bookings: AdminBooking[] }>("/api/admin/bookings");
+      setBookings(normalizeBookings(data.bookings ?? []));
+    } catch (err) {
+      setError(getCanonicalError(err));
+    }
+  }
+
   const filtered = useMemo(() => {
-    return normalizedItems.filter((item) => {
+    return bookings.filter((item) => {
       if (filterStatus !== "all" && item.status !== filterStatus) return false;
       if (filterDate) {
         if (!item.preferredAt) return false;
@@ -54,18 +80,21 @@ export function AdminBookingsClient({ items }: { items: AdminBooking[] }) {
       }
       return true;
     });
-  }, [normalizedItems, filterStatus, filterDate]);
+  }, [bookings, filterStatus, filterDate]);
 
   async function handleUpdate() {
-    const bookingRef = (selected?.bookingRef ?? selected?.bkgRef ?? "").trim();
-    if (!bookingRef || !nextStatus) return;
+    const bookingRef = selected?.bookingRef ?? "";
+    if (!bookingRef || !nextStatus || !selected) return;
+
+    const previousStatus = selected.status;
 
     setError(null);
     setMessage(null);
-    try {
-      const details = await clientFetch<{ booking: AdminBooking }>(`/api/admin/bookings/${encodeURIComponent(bookingRef)}`);
-      setSelected(details.booking);
+    setIsUpdating(true);
+    setUpdatingRef(bookingRef);
+    setBookings((prev) => prev.map((b) => (b.bookingRef === bookingRef ? { ...b, status: nextStatus } : b)));
 
+    try {
       await clientFetch(`/api/admin/bookings/${encodeURIComponent(bookingRef)}/status`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
@@ -73,12 +102,17 @@ export function AdminBookingsClient({ items }: { items: AdminBooking[] }) {
       });
       setMessage("Booking status updated.");
       setSelected(null);
+      void refreshList();
     } catch (err) {
+      setBookings((prev) => prev.map((b) => (b.bookingRef === bookingRef ? { ...b, status: previousStatus } : b)));
       setError(getCanonicalError(err));
+    } finally {
+      setIsUpdating(false);
+      setUpdatingRef(null);
     }
   }
 
-  if (normalizedItems.length === 0) {
+  if (bookings.length === 0) {
     return <Alert variant="info">No bookings available.</Alert>;
   }
 
@@ -122,9 +156,10 @@ export function AdminBookingsClient({ items }: { items: AdminBooking[] }) {
               <Button
                 type="button"
                 variant="secondary"
+                disabled={isUpdating && updatingRef === booking.bookingRef}
                 onClick={() => {
                   setSelected(booking);
-                  setNextStatus(booking.status ?? "");
+                  setNextStatus(booking.status && isUpdatableStatus(booking.status) ? booking.status : "");
                 }}
               >
                 Update status
@@ -144,7 +179,7 @@ export function AdminBookingsClient({ items }: { items: AdminBooking[] }) {
               label="New status"
               name="nextStatus"
               value={nextStatus}
-              onChange={(event) => setNextStatus(event.target.value)}
+              onChange={(event) => setNextStatus(event.target.value as AdminBookingStatus | "")}
             >
               <option value="">Select status</option>
               {statuses.map((status) => (
@@ -154,10 +189,10 @@ export function AdminBookingsClient({ items }: { items: AdminBooking[] }) {
               ))}
             </Select>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => setSelected(null)}>
+              <Button type="button" variant="ghost" onClick={() => setSelected(null)} disabled={isUpdating}>
                 Cancel
               </Button>
-              <Button type="button" onClick={handleUpdate} disabled={!nextStatus}>
+              <Button type="button" onClick={handleUpdate} disabled={!nextStatus || isUpdating}>
                 Confirm update
               </Button>
             </div>
