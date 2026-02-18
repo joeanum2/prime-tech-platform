@@ -10,10 +10,12 @@ import { ErrorPresenter } from "@/components/error/ErrorPresenter";
 import { clientFetch, getCanonicalError, CanonicalError } from "@/lib/api";
 
 export type AdminBooking = {
-  bkgRef: string;
+  bookingRef?: string;
+  bkgRef?: string;
   status?: string;
   fullName?: string;
   email?: string;
+  serviceName?: string;
   serviceNameSnapshot?: string;
   preferredAt?: string;
 };
@@ -21,6 +23,18 @@ export type AdminBooking = {
 const statuses = ["NEW", "CONFIRMED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
 
 export function AdminBookingsClient({ items }: { items: AdminBooking[] }) {
+  const normalizedItems = useMemo(
+    () =>
+      items
+        .map((item) => ({
+          ...item,
+          bookingRef: (item.bookingRef ?? item.bkgRef ?? "").trim(),
+          serviceName: item.serviceName ?? item.serviceNameSnapshot
+        }))
+        .filter((item) => item.bookingRef.length > 0),
+    [items]
+  );
+
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDate, setFilterDate] = useState("");
   const [selected, setSelected] = useState<AdminBooking | null>(null);
@@ -29,7 +43,7 @@ export function AdminBookingsClient({ items }: { items: AdminBooking[] }) {
   const [message, setMessage] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    return items.filter((item) => {
+    return normalizedItems.filter((item) => {
       if (filterStatus !== "all" && item.status !== filterStatus) return false;
       if (filterDate) {
         if (!item.preferredAt) return false;
@@ -40,14 +54,19 @@ export function AdminBookingsClient({ items }: { items: AdminBooking[] }) {
       }
       return true;
     });
-  }, [items, filterStatus, filterDate]);
+  }, [normalizedItems, filterStatus, filterDate]);
 
   async function handleUpdate() {
-    if (!selected || !nextStatus) return;
+    const bookingRef = (selected?.bookingRef ?? selected?.bkgRef ?? "").trim();
+    if (!bookingRef || !nextStatus) return;
+
     setError(null);
     setMessage(null);
     try {
-      await clientFetch(`/api/admin/bookings/${selected.bkgRef}`, {
+      const details = await clientFetch<{ booking: AdminBooking }>(`/api/admin/bookings/${encodeURIComponent(bookingRef)}`);
+      setSelected(details.booking);
+
+      await clientFetch(`/api/admin/bookings/${encodeURIComponent(bookingRef)}/status`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ status: nextStatus })
@@ -59,7 +78,7 @@ export function AdminBookingsClient({ items }: { items: AdminBooking[] }) {
     }
   }
 
-  if (items.length === 0) {
+  if (normalizedItems.length === 0) {
     return <Alert variant="info">No bookings available.</Alert>;
   }
 
@@ -92,11 +111,11 @@ export function AdminBookingsClient({ items }: { items: AdminBooking[] }) {
 
       <div className="space-y-3">
         {filtered.map((booking) => (
-          <div key={booking.bkgRef} className="card flex flex-wrap items-center justify-between gap-4 p-4">
+          <div key={booking.bookingRef} className="card flex flex-wrap items-center justify-between gap-4 p-4">
             <div>
-              <p className="text-sm text-muted">{booking.bkgRef}</p>
+              <p className="text-sm text-muted">{booking.bookingRef}</p>
               <p className="text-lg font-semibold text-text">{booking.fullName ?? "Customer"}</p>
-              <p className="text-sm text-muted">{booking.serviceNameSnapshot ?? "Service"}</p>
+              <p className="text-sm text-muted">{booking.serviceName ?? booking.serviceNameSnapshot ?? "Service"}</p>
             </div>
             <div className="flex items-center gap-3">
               <p className="text-xs text-muted">{booking.status ?? ""}</p>
@@ -119,7 +138,7 @@ export function AdminBookingsClient({ items }: { items: AdminBooking[] }) {
         {selected ? (
           <div className="space-y-4">
             <p className="text-sm text-muted">
-              {selected.bkgRef} — {selected.fullName}
+              {selected.bookingRef ?? selected.bkgRef} — {selected.fullName}
             </p>
             <Select
               label="New status"
