@@ -2,33 +2,81 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================================
+   Prime Tech Services - Blue Corporate Professional Theme
+   ========================================================= */
+
 :root {
-  color-scheme: light;
-  --background: #f7f7f5;
-  --text: #1f1f1b;
-  --surface: #ffffff;
-  --surface-muted: #f2f2ef;
-  --border: #d9d9d2;
+  --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Apple Color Emoji",
+    "Segoe UI Emoji";
+  --font-display: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans";
+
+  --bg: 248 250 252;
+  --panel: 255 255 255;
+  --panel-2: 241 245 249;
+  --text: 15 23 42;
+  --muted: 71 85 105;
+  --border: 226 232 240;
+
+  --brand: 30 64 175;
+  --brand-2: 37 99 235;
+  --brand-3: 14 165 233;
+
+  --shadow-soft: 0 8px 24px rgba(2, 6, 23, 0.06);
+  --shadow-card: 0 10px 28px rgba(2, 6, 23, 0.08);
+  --shadow-focus: 0 0 0 4px rgba(37, 99, 235, 0.2);
+
+  --radius: 16px;
+
+  --wash-1: rgba(37, 99, 235, 0.12);
+  --wash-2: rgba(14, 165, 233, 0.1);
+  --wash-3: rgba(30, 64, 175, 0.08);
 }
 
 * {
   @apply border-border;
 }
 
+html,
 body {
-  background-color: var(--background);
-  color: var(--text);
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  color: rgb(var(--text));
+  background: rgb(var(--bg));
   @apply bg-background text-text antialiased;
   font-feature-settings: "ss01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
   @apply text-primary hover:text-primary-hover transition-colors;
+  text-underline-offset: 3px;
+}
+
+::selection {
+  background: rgba(37, 99, 235, 0.18);
 }
 
 :focus-visible {
-  outline: 2px solid #2f3b2f;
+  outline: 2px solid rgba(37, 99, 235, 0.55);
   outline-offset: 2px;
+}
+
+input,
+select,
+textarea {
+  outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  box-shadow: var(--shadow-focus);
+  border-color: rgba(37, 99, 235, 0.55) !important;
 }
 
 .section-title {
@@ -48,7 +96,19 @@ a {
 }
 
 .card {
-  @apply rounded-2xl border bg-surface shadow-card;
+  @apply rounded-2xl border bg-surface;
+  box-shadow: var(--shadow-soft);
+}
+
+.pt-card {
+  background: rgb(var(--panel));
+  border: 1px solid rgb(var(--border));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+
+.pt-card-strong {
+  box-shadow: var(--shadow-card);
 }
 
 .table-shell {
@@ -79,4 +139,3 @@ a {
 .skeleton {
   @apply animate-pulse rounded-xl bg-[color:var(--surface-muted)];
 }
-

@@ -1,8 +1,45 @@
-export function AppBackground() {
+import React from "react";
+
+/**
+ * Blue corporate professional background:
+ * - subtle blue wash gradients
+ * - faint grid for structure
+ * - clean, high-contrast content surface
+ */
+export function AppBackground({ children }: { children: React.ReactNode }) {
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(1200px_600px_at_15%_-10%,rgba(37,99,235,0.16),transparent_65%),radial-gradient(900px_520px_at_90%_0%,rgba(249,115,22,0.14),transparent_60%),linear-gradient(180deg,#f8fafc_0%,#f8fafc_35%,#fffdf8_100%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,23,42,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.045)_1px,transparent_1px)] bg-[size:34px_34px] opacity-40" />
+    <div className="min-h-screen">
+      <div aria-hidden className="fixed inset-0 -z-10" style={{ background: "rgb(var(--bg))" }}>
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(1200px 520px at 15% 0%, var(--wash-1), transparent 60%)," +
+              "radial-gradient(900px 520px at 85% 10%, var(--wash-2), transparent 62%)," +
+              "radial-gradient(900px 620px at 50% 100%, var(--wash-3), transparent 65%)"
+          }}
+        />
+
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, rgba(15,23,42,0.035) 1px, transparent 1px)," +
+              "linear-gradient(to bottom, rgba(15,23,42,0.035) 1px, transparent 1px)",
+            backgroundSize: "64px 64px",
+            maskImage: "radial-gradient(900px 500px at 50% 0%, rgba(0,0,0,0.85), transparent 70%)"
+          }}
+        />
+
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "radial-gradient(1200px 800px at 50% 30%, transparent 55%, rgba(2,6,23,0.05) 100%)"
+          }}
+        />
+      </div>
+
+      <div className="relative">{children}</div>
     </div>
   );
 }
