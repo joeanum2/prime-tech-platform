@@ -37,3 +37,11 @@ backend/.env
 
 
 backend/set-admin-token.ps1
+# Local backups / temp deploy artifacts
+.backups/
+.deploy-tmp/
+
+# Build/deploy zip bundles
+*.zip
+prime-tech-backend.zip
+prime-tech-frontend.zip
