@@ -1,6 +1,5 @@
 import type { Request, Response } from "express";
-import { BookingStatus, Prisma } from "@prisma/client";
-import { z } from "zod";
+import { BookingStatus } from "@prisma/client";
 import { prisma } from "../db/prisma";
 
 function toAdminBooking(row: {
@@ -146,57 +145,54 @@ export async function adminGetBooking(req: Request, res: Response) {
   return res.status(200).json({ booking: toAdminBooking(booking) });
 }
 
-const patchBookingSchema = z.object({
-  status: z.nativeEnum(BookingStatus)
-});
-
 export async function adminPatchBooking(req: Request, res: Response) {
-  const tenantId = (req as any).tenantId as string | undefined;
-  if (!tenantId) {
-    return res.status(403).json({ error: "Tenant resolution required" });
+  const bookingRef = (req.params.bookingRef || (req as any).params?.bkgRef || "").trim();
+  if (!bookingRef) {
+    return res.status(400).json({ error: "Missing bookingRef" });
   }
 
-  const bkgRef = String(req.params.bkgRef ?? req.params.bookingRef ?? "").trim();
-  if (!bkgRef) {
-    return res.status(400).json({ error: "bkgRef is required" });
+  const status = String(req.body?.status || "").trim();
+  if (!status) {
+    return res.status(400).json({ error: "Missing status" });
   }
 
-  const parsed = patchBookingSchema.safeParse(req.body);
-  if (!parsed.success) {
+  if (!Object.values(BookingStatus).includes(status as BookingStatus)) {
     return res.status(400).json({
       error: "Invalid status",
-      details: parsed.error.flatten().fieldErrors
+      allowed: Object.values(BookingStatus)
     });
   }
 
-  try {
-    const updated = await prisma.booking.update({
-      where: {
-        tenantId_bkgRef: {
-          tenantId,
-          bkgRef
-        }
-      },
-      data: { status: parsed.data.status },
-      select: {
-        bkgRef: true,
-        fullName: true,
-        email: true,
-        serviceNameSnapshot: true,
-        status: true,
-        preferredAt: true,
-        createdAt: true,
-        notes: true
-      }
-    });
+  const bookingWhere = { bkgRef: bookingRef };
 
-    return res.status(200).json({
-      booking: toAdminBooking(updated)
-    });
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-      return res.status(404).json({ error: "Booking not found" });
+  const result = await prisma.booking.updateMany({
+    where: bookingWhere,
+    data: { status: status as BookingStatus }
+  });
+
+  if (result.count === 0) {
+    return res.status(404).json({ error: "Booking not found" });
+  }
+
+  const updated = await prisma.booking.findFirst({
+    where: bookingWhere,
+    select: {
+      bkgRef: true,
+      fullName: true,
+      email: true,
+      serviceNameSnapshot: true,
+      status: true,
+      preferredAt: true,
+      createdAt: true,
+      notes: true
     }
-    throw error;
+  });
+
+  if (!updated) {
+    return res.status(404).json({ error: "Booking not found" });
   }
+
+  return res.status(200).json({
+    booking: toAdminBooking(updated)
+  });
 }
