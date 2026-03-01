@@ -146,7 +146,12 @@ export async function adminGetBooking(req: Request, res: Response) {
 }
 
 export async function adminPatchBooking(req: Request, res: Response) {
-  const bookingRef = (req.params.bookingRef || (req as any).params?.bkgRef || "").trim();
+  const tenantId = (req as any).tenantId as string | undefined;
+  if (!tenantId) {
+    return res.status(403).json({ error: "Tenant resolution required" });
+  }
+
+  const bookingRef = String(req.params.bookingRef ?? "").trim();
   if (!bookingRef) {
     return res.status(400).json({ error: "Missing bookingRef" });
   }
@@ -163,7 +168,7 @@ export async function adminPatchBooking(req: Request, res: Response) {
     });
   }
 
-  const bookingWhere = { bkgRef: bookingRef };
+  const bookingWhere = { tenantId, bkgRef: bookingRef };
 
   const result = await prisma.booking.updateMany({
     where: bookingWhere,
