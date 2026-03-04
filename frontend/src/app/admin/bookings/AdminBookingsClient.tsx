@@ -99,6 +99,7 @@ export function AdminBookingsClient() {
       if (date) params.set("date", date);
       params.set("page", String(page));
       params.set("pageSize", String(pageSize));
+      params.set("_ts", String(Date.now()));
 
       const data = await clientFetch<AdminBookingsResponse>(`/api/admin/bookings?${params.toString()}`);
       setBookings(normalizeBookings(data.bookings ?? []));
