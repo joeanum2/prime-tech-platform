@@ -133,27 +133,27 @@ export function AdminBookingsClient() {
 
   async function handleUpdate() {
     if (!selectedRef || !nextStatus) return;
-
-    const previousStatus = selectedBooking?.status;
+    const ref = selectedRef;
+    const status = nextStatus;
 
     setErrorMessage(null);
     setMessage(null);
     setIsUpdating(true);
-    setUpdatingRef(selectedRef);
-    setBookings((prev) => prev.map((b) => (b.bookingRef === selectedRef ? { ...b, status: nextStatus } : b)));
+    setUpdatingRef(ref);
 
     try {
-      await clientFetch(`/api/admin/bookings/${encodeURIComponent(selectedRef)}/status`, {
+      await clientFetch(`/api/admin/bookings/${encodeURIComponent(ref)}/status`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ status: nextStatus })
+        body: JSON.stringify({ status })
       });
+      setBookings((prev) => prev.map((b) => (b.bookingRef === ref ? { ...b, status } : b)));
+      setDetailsBooking((prev) => (prev && prev.bookingRef === ref ? { ...prev, status } : prev));
       await loadBookings();
-      setMessage("Booking status updated.");
+      setMessage("Status updated.");
       setSelectedRef(null);
       setNextStatus("");
     } catch (err) {
-      setBookings((prev) => prev.map((b) => (b.bookingRef === selectedRef ? { ...b, status: previousStatus } : b)));
       setErrorMessage(toUiErrorMessage(err));
     } finally {
       setIsUpdating(false);
