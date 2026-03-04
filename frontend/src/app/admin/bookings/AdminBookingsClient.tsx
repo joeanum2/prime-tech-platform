@@ -147,10 +147,10 @@ export function AdminBookingsClient() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ status: nextStatus })
       });
+      await loadBookings();
       setMessage("Booking status updated.");
       setSelectedRef(null);
       setNextStatus("");
-      void loadBookings();
     } catch (err) {
       setBookings((prev) => prev.map((b) => (b.bookingRef === selectedRef ? { ...b, status: previousStatus } : b)));
       setErrorMessage(toUiErrorMessage(err));
